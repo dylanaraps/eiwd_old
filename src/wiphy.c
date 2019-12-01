@@ -500,7 +500,7 @@ const uint8_t *wiphy_get_supported_rates(struct wiphy *wiphy, unsigned int band,
 
 	if (out_num)
 		*out_num =
-			(uint8_t *) rawmemchr(wiphy->supported_rates[band], 0) -
+			(uint8_t *) strchr(wiphy->supported_rates[band], 0) -
 			wiphy->supported_rates[band];
 
 	return wiphy->supported_rates[band];
