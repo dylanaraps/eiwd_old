@@ -1118,13 +1118,6 @@ static void wsc_add_interface(struct netdev *netdev)
 
 	wsc = l_new(struct wsc, 1);
 	wsc->netdev = netdev;
-
-	if (!l_dbus_object_add_interface(dbus, netdev_get_path(netdev),
-						IWD_WSC_INTERFACE,
-						wsc)) {
-		wsc_free(wsc);
-		l_info("Unable to register %s interface", IWD_WSC_INTERFACE);
-	}
 }
 
 static void wsc_remove_interface(struct netdev *netdev)

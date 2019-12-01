@@ -313,15 +313,6 @@ static struct device *device_create(struct wiphy *wiphy, struct netdev *netdev)
 	device->wiphy = wiphy;
 	device->netdev = netdev;
 
-	if (!l_dbus_object_add_interface(dbus, netdev_get_path(device->netdev),
-					IWD_DEVICE_INTERFACE, device))
-		l_info("Unable to register %s interface", IWD_DEVICE_INTERFACE);
-
-	if (!l_dbus_object_add_interface(dbus, netdev_get_path(device->netdev),
-					L_DBUS_INTERFACE_PROPERTIES, device))
-		l_info("Unable to register %s interface",
-				L_DBUS_INTERFACE_PROPERTIES);
-
 	scan_wdev_add(netdev_get_wdev_id(device->netdev));
 
 	/*

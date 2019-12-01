@@ -1279,13 +1279,6 @@ static int wiphy_init(void)
 
 	rfkill_watch_add(wiphy_rfkill_cb, NULL);
 
-	if (!l_dbus_register_interface(dbus_get_bus(),
-					IWD_WIPHY_INTERFACE,
-					setup_wiphy_interface,
-					NULL, false))
-		l_error("Unable to register the %s interface",
-				IWD_WIPHY_INTERFACE);
-
 	hwdb = l_hwdb_new_default();
 
 	if (whitelist)
