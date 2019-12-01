@@ -76,7 +76,6 @@ static void iwd_shutdown(void)
 		return;
 	}
 
-	dbus_shutdown();
 	netdev_shutdown();
 
 	timeout = l_timeout_create(1, main_loop_quit, NULL, NULL);
@@ -129,7 +128,6 @@ static void usage(void)
 		"Usage:\n");
 	printf("\tiwd [options]\n");
 	printf("Options:\n"
-		"\t-B, --dbus-debug       Enable D-Bus debugging\n"
 		"\t-i, --interfaces       Interfaces to manage\n"
 		"\t-I, --nointerfaces     Interfaces to ignore\n"
 		"\t-p, --phys             Phys to manage\n"
@@ -142,7 +140,6 @@ static void usage(void)
 }
 
 static const struct option main_options[] = {
-	{ "dbus-debug",   no_argument,       NULL, 'B' },
 	{ "version",      no_argument,       NULL, 'v' },
 	{ "interfaces",   required_argument, NULL, 'i' },
 	{ "nointerfaces", required_argument, NULL, 'I' },
@@ -195,20 +192,6 @@ static void request_name_callback(struct l_dbus *dbus, bool success,
 
 fail_exit:
 	l_main_quit();
-}
-
-static void dbus_ready(void *user_data)
-{
-	struct l_dbus *dbus = user_data;
-
-	l_dbus_name_acquire(dbus, "net.connman.iwd", false, false, false,
-				request_name_callback, NULL);
-}
-
-static void dbus_disconnected(void *user_data)
-{
-	l_info("D-Bus disconnected, quitting...");
-	iwd_shutdown();
 }
 
 static void print_koption(const void *key, void *value, void *user_data)
@@ -363,9 +346,7 @@ done:
 
 int main(int argc, char *argv[])
 {
-	bool enable_dbus_debug = false;
 	int exit_status;
-	struct l_dbus *dbus;
 	const char *config_dir;
 	char **config_dirs;
 	int i;
@@ -373,15 +354,12 @@ int main(int argc, char *argv[])
 	for (;;) {
 		int opt;
 
-		opt = getopt_long(argc, argv, "Bi:I:p:P:d::vh",
+		opt = getopt_long(argc, argv, "i:I:p:P:d::vh",
 							main_options, NULL);
 		if (opt < 0)
 			break;
 
 		switch (opt) {
-		case 'B':
-			enable_dbus_debug = true;
-			break;
 		case 'i':
 			interfaces = optarg;
 			break;
@@ -481,26 +459,10 @@ int main(int argc, char *argv[])
 	if (getenv("IWD_GENL_DEBUG"))
 		l_genl_set_debug(genl, do_debug, "[GENL] ", NULL);
 
-	dbus = l_dbus_new_default(L_DBUS_SYSTEM_BUS);
-	if (!dbus) {
-		l_error("Failed to initialize D-Bus");
-		goto fail_dbus;
-	}
-
-	if (enable_dbus_debug)
-		l_dbus_set_debug(dbus, do_debug, "[DBUS] ", NULL);
-
-	l_dbus_set_ready_handler(dbus, dbus_ready, dbus, NULL);
-	l_dbus_set_disconnect_handler(dbus, dbus_disconnected, NULL, NULL);
-	dbus_init(dbus);
-
 	exit_status = l_main_run_with_signal(signal_handler, NULL);
 	plugin_exit();
-
 	iwd_modules_exit();
 
-	dbus_exit();
-	l_dbus_destroy(dbus);
 	storage_cleanup_dirs();
 fail_dbus:
 	l_genl_unref(genl);
