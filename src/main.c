@@ -174,26 +174,6 @@ static void nl80211_appeared(const struct l_genl_family_info *info,
 	plugin_init(plugins, noplugins);
 }
 
-static void request_name_callback(struct l_dbus *dbus, bool success,
-					bool queued, void *user_data)
-{
-	if (!success) {
-		l_error("Name request failed");
-		goto fail_exit;
-	}
-
-	if (!l_dbus_object_manager_enable(dbus, "/"))
-		l_warn("Unable to register the ObjectManager");
-
-	/* TODO: Always request nl80211 for now, ignoring auto-loading */
-	l_genl_request_family(genl, NL80211_GENL_NAME, nl80211_appeared,
-				NULL, NULL);
-	return;
-
-fail_exit:
-	l_main_quit();
-}
-
 static void print_koption(const void *key, void *value, void *user_data)
 {
 	l_info("\t%s", (const char *) key);
@@ -458,6 +438,9 @@ int main(int argc, char *argv[])
 
 	if (getenv("IWD_GENL_DEBUG"))
 		l_genl_set_debug(genl, do_debug, "[GENL] ", NULL);
+
+	l_genl_request_family(genl, NL80211_GENL_NAME, nl80211_appeared,
+				NULL, NULL);
 
 	exit_status = l_main_run_with_signal(signal_handler, NULL);
 	plugin_exit();
