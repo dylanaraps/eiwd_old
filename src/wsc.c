@@ -1151,16 +1151,12 @@ static int wsc_init(void)
 {
 	l_debug("");
 	netdev_watch = netdev_watch_add(wsc_netdev_watch, NULL, NULL);
-	l_dbus_register_interface(dbus_get_bus(), IWD_WSC_INTERFACE,
-					setup_wsc_interface,
-					wsc_free, false);
 	return 0;
 }
 
 static void wsc_exit(void)
 {
 	l_debug("");
-	l_dbus_unregister_interface(dbus_get_bus(), IWD_WSC_INTERFACE);
 	netdev_watch_remove(netdev_watch);
 }
 

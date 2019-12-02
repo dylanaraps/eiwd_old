@@ -1071,8 +1071,6 @@ bool wiphy_destroy(struct wiphy *wiphy)
 	if (!l_queue_remove(wiphy_list, wiphy))
 		return false;
 
-	l_dbus_unregister_object(dbus_get_bus(), wiphy_get_path(wiphy));
-
 	wiphy_free(wiphy);
 	return true;
 }
@@ -1302,8 +1300,6 @@ static void wiphy_exit(void)
 	l_genl_family_free(nl80211);
 	nl80211 = NULL;
 	mac_randomize_bytes = 6;
-
-	l_dbus_unregister_interface(dbus_get_bus(), IWD_WIPHY_INTERFACE);
 
 	l_hwdb_unref(hwdb);
 }

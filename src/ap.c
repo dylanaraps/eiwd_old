@@ -1681,16 +1681,12 @@ static int ap_init(void)
 {
 	netdev_watch = netdev_watch_add(ap_netdev_watch, NULL, NULL);
 
-	l_dbus_register_interface(dbus_get_bus(), IWD_AP_INTERFACE,
-			ap_setup_interface, ap_destroy_interface, false);
-
 	return 0;
 }
 
 static void ap_exit(void)
 {
 	netdev_watch_remove(netdev_watch);
-	l_dbus_unregister_interface(dbus_get_bus(), IWD_AP_INTERFACE);
 }
 
 IWD_MODULE(ap, ap_init, ap_exit)

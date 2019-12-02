@@ -216,10 +216,6 @@ static void set_mode_cb(struct netdev *netdev, int result, void *user_data)
 
 	cb_data->complete(cb_data->dbus, cb_data->message, reply);
 	cb_data->message = NULL;
-
-	l_dbus_property_changed(cb_data->dbus,
-				netdev_get_path(cb_data->device->netdev),
-				IWD_DEVICE_INTERFACE, "Mode");
 }
 
 static struct l_dbus_message *device_property_set_mode(struct l_dbus *dbus,
@@ -270,18 +266,6 @@ static struct l_dbus_message *device_property_set_mode(struct l_dbus *dbus,
 
 static void setup_device_interface(struct l_dbus_interface *interface)
 {
-	l_dbus_interface_property(interface, "Name", 0, "s",
-					device_property_get_name, NULL);
-	l_dbus_interface_property(interface, "Address", 0, "s",
-					device_property_get_address, NULL);
-	l_dbus_interface_property(interface, "Powered", 0, "b",
-					device_property_get_powered,
-					device_property_set_powered);
-	l_dbus_interface_property(interface, "Adapter", 0, "o",
-					device_property_get_adapter, NULL);
-	l_dbus_interface_property(interface, "Mode", 0, "s",
-					device_property_get_mode,
-					device_property_set_mode);
 }
 
 static void device_wiphy_state_changed_event(struct wiphy *wiphy,
@@ -370,27 +354,18 @@ static void device_netdev_notify(struct netdev *netdev,
 		device_create(netdev_get_wiphy(netdev), netdev);
 		break;
 	case NETDEV_WATCH_EVENT_DEL:
-		l_dbus_unregister_object(dbus, path);
 		break;
 	case NETDEV_WATCH_EVENT_UP:
 		device->powered = true;
 
-		l_dbus_property_changed(dbus, path,
-					IWD_DEVICE_INTERFACE, "Powered");
 		break;
 	case NETDEV_WATCH_EVENT_DOWN:
 		device->powered = false;
 
-		l_dbus_property_changed(dbus, path,
-					IWD_DEVICE_INTERFACE, "Powered");
 		break;
 	case NETDEV_WATCH_EVENT_NAME_CHANGE:
-		l_dbus_property_changed(dbus, path,
-					IWD_DEVICE_INTERFACE, "Name");
 		break;
 	case NETDEV_WATCH_EVENT_ADDRESS_CHANGE:
-		l_dbus_property_changed(dbus, path,
-					IWD_DEVICE_INTERFACE, "Address");
 		break;
 	default:
 		break;

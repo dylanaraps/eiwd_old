@@ -687,8 +687,6 @@ static void adhoc_netdev_watch(struct netdev *netdev,
 static int adhoc_init(void)
 {
 	netdev_watch = netdev_watch_add(adhoc_netdev_watch, NULL, NULL);
-	l_dbus_register_interface(dbus_get_bus(), IWD_ADHOC_INTERFACE,
-			adhoc_setup_interface, adhoc_destroy_interface, false);
 
 	return 0;
 }
@@ -696,7 +694,6 @@ static int adhoc_init(void)
 static void adhoc_exit(void)
 {
 	netdev_watch_remove(netdev_watch);
-	l_dbus_unregister_interface(dbus_get_bus(), IWD_ADHOC_INTERFACE);
 }
 
 IWD_MODULE(adhoc, adhoc_init, adhoc_exit)

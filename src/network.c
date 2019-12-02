@@ -1295,8 +1295,6 @@ static void network_unregister(struct network *network, int reason)
 	agent_request_cancel(network->agent_request, reason);
 	network_settings_close(network);
 
-	l_dbus_unregister_object(dbus, network->object_path);
-
 	l_free(network->object_path);
 	network->object_path = NULL;
 }
@@ -1492,8 +1490,6 @@ static void network_exit(void)
 {
 	known_networks_watch_remove(known_networks_watch);
 	known_networks_watch = 0;
-
-	l_dbus_unregister_interface(dbus_get_bus(), IWD_NETWORK_INTERFACE);
 }
 
 IWD_MODULE(network, network_init, network_exit)
