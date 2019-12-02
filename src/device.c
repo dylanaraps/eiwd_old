@@ -84,14 +84,14 @@ static void set_generic_destroy(void *user_data)
 static void set_powered_cb(struct netdev *netdev, int result, void *user_data)
 {
 	struct set_generic_cb_data *cb_data = user_data;
-	cb_data->complete(cb_data->dbus, cb_data->message, reply);
+	cb_data->complete(cb_data->dbus, cb_data->message, NULL);
 	cb_data->message = NULL;
 }
 
 static void set_mode_cb(struct netdev *netdev, int result, void *user_data)
 {
 	struct set_generic_cb_data *cb_data = user_data;
-	cb_data->complete(cb_data->dbus, cb_data->message, reply);
+	cb_data->complete(cb_data->dbus, cb_data->message, NULL);
 	cb_data->message = NULL;
 }
 
