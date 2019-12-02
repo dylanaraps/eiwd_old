@@ -115,8 +115,7 @@ static void agent_request_free(void *user_data)
 	l_free(request);
 }
 
-static void agent_finalize_pending(struct agent *agent,
-						struct l_dbus_message *reply)
+static void agent_finalize_pending(struct agent *agent)
 {
 	struct agent_request *pending;
 
@@ -165,7 +164,7 @@ static void request_timeout(struct l_timeout *timeout, void *user_data)
 
 	send_cancel_request(agent, -ETIMEDOUT);
 
-	agent_finalize_pending(agent, NULL);
+	agent_finalize_pending(agent);
 
 	agent_send_next_request(agent);
 }
@@ -179,7 +178,7 @@ static void agent_receive_reply(struct l_dbus_message *message,
 
 	agent->pending_id = 0;
 
-	agent_finalize_pending(agent, NULL);
+	agent_finalize_pending(agent);
 
 	if (!agent->pending_id)
 		agent_send_next_request(agent);
