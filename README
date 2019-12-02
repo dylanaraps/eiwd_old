@@ -38,7 +38,7 @@ SYSTEM-WIDE CONFIG (/etc/iwd/main.conf)
 PER-NETWORK CONFIGS (/var/lib/iwd/ssid.psk) (or use iwd_passphrase)
 
     [Security]
-    Passphrase=2645092660
+    Passphrase=password
 
 
 SSID NAMING
