@@ -1,4 +1,4 @@
-IWD NO DBUS
+eiwd - iwd without dbus
 -----------
 
 GOALS
@@ -6,13 +6,6 @@ GOALS
 * Get the daemon to function using config files (No iwctl and friends). DONE
 
 * Implement IPC between clients without DBUS. SOON(TM)
-
-
-TODO
-
-* Set up CI and build/test each commit automatically.
-* Remove all DBUS related code from src/*. DONE
-* TBA
 
 
 BUILDING
