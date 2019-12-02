@@ -82,10 +82,10 @@ static void iwd_shutdown(void)
 	timeout = l_timeout_create(1, main_loop_quit, NULL, NULL);
 }
 
-static int encode_psk(ssid) {
-	unsigned char psk[32];
+static int encode_psk(char *ssid) {
+	unsigned char *psk;
 	int i;
-	char *ssid, *passphrase, buf[64], *pos;
+	char *passphrase, buf[64], *pos;
 	size_t len;
 
     if (fgets(buf, sizeof(buf), stdin) == NULL) {
