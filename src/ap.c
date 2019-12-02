@@ -108,27 +108,6 @@ static void ap_sta_free(void *data)
 	l_free(sta);
 }
 
-static void ap_remove_sta(struct sta_state *sta)
-{
-	if (!l_queue_remove(sta->ap->sta_states, sta)) {
-		l_error("tried to remove station that doesn't exist");
-		return;
-	}
-
-	ap_sta_free(sta);
-}
-
-static void ap_new_rsna(struct sta_state *sta)
-{
-	l_debug("STA "MAC" authenticated", MAC_STR(sta->addr));
-
-	sta->rsna = true;
-	/*
-	 * TODO: Once new AP interface is implemented this is where a
-	 * new "ConnectedPeer" property will be added.
-	 */
-}
-
 static void ap_add_interface(struct netdev *netdev)
 {
 	struct ap_state *ap;
