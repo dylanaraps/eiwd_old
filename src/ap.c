@@ -124,10 +124,6 @@ static void ap_reset(struct ap_state *ap)
 	if (!ap->started)
 		return;
 
-	if (ap->pending)
-		dbus_pending_reply(&ap->pending,
-				dbus_error_aborted(ap->pending));
-
 	l_free(ap->ssid);
 
 	memset(ap->pmk, 0, sizeof(ap->pmk));
@@ -1325,15 +1321,10 @@ static void ap_start_cb(struct l_genl_msg *msg, void *user_data)
 	if (l_genl_msg_get_error(msg) < 0) {
 		l_error("START_AP failed: %i", l_genl_msg_get_error(msg));
 
-		dbus_pending_reply(&ap->pending,
-				dbus_error_invalid_args(ap->pending));
 		ap_reset(ap);
 
 		return;
 	}
-
-	dbus_pending_reply(&ap->pending,
-			l_dbus_message_new_method_return(ap->pending));
 
 	ap->started = true;
 }
@@ -1500,13 +1491,8 @@ static void ap_stop_cb(struct l_genl_msg *msg, void *user_data)
 
 	if (l_genl_msg_get_error(msg) < 0) {
 		l_error("STOP_AP failed: %i", l_genl_msg_get_error(msg));
-		dbus_pending_reply(&ap->pending,
-				dbus_error_failed(ap->pending));
 		goto end;
 	}
-
-	dbus_pending_reply(&ap->pending,
-			l_dbus_message_new_method_return(ap->pending));
 
 end:
 	ap_reset(ap);
@@ -1557,70 +1543,6 @@ static int ap_stop(struct ap_state *ap, struct l_dbus_message *message)
 	ap->pending = l_dbus_message_ref(message);
 
 	return 0;
-}
-
-static struct l_dbus_message *ap_dbus_start(struct l_dbus *dbus,
-		struct l_dbus_message *message, void *user_data)
-{
-	struct ap_state *ap = user_data;
-	const char *ssid, *wpa2_psk;
-
-	if (ap->pending)
-		return dbus_error_busy(message);
-
-	if (ap->started)
-		return dbus_error_already_exists(message);
-
-	if (!l_dbus_message_get_arguments(message, "ss", &ssid, &wpa2_psk))
-		return dbus_error_invalid_args(message);
-
-	if (ap_start(ap, ssid, wpa2_psk, message) < 0)
-		return dbus_error_invalid_args(message);
-
-	return NULL;
-}
-
-static struct l_dbus_message *ap_dbus_stop(struct l_dbus *dbus,
-		struct l_dbus_message *message, void *user_data)
-{
-	struct ap_state *ap = user_data;
-
-	if (ap->pending)
-		return dbus_error_busy(message);
-
-	/* already stopped, no-op */
-	if (!ap->started)
-		return l_dbus_message_new_method_return(message);
-
-	if (ap_stop(ap, message) < 0)
-		return dbus_error_failed(message);
-
-	return NULL;
-}
-
-static bool ap_dbus_property_get_started(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static void ap_setup_interface(struct l_dbus_interface *interface)
-{
-	l_dbus_interface_method(interface, "Start", 0, ap_dbus_start, "",
-			"ss", "ssid", "wpa2_psk");
-	l_dbus_interface_method(interface, "Stop", 0, ap_dbus_stop, "", "");
-
-	l_dbus_interface_property(interface, "Started", 0, "b",
-					ap_dbus_property_get_started, NULL);
-}
-
-static void ap_destroy_interface(void *user_data)
-{
-	struct ap_state *ap = user_data;
-
-	ap_free(ap);
 }
 
 static void ap_add_interface(struct netdev *netdev)
