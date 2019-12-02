@@ -1065,17 +1065,7 @@ static struct l_dbus_message *wsc_cancel(struct l_dbus *dbus,
 	return reply;
 }
 
-static void setup_wsc_interface(struct l_dbus_interface *interface)
-{
-	l_dbus_interface_method(interface, "PushButton", 0,
-				wsc_push_button, "", "");
-	l_dbus_interface_method(interface, "GeneratePin", 0,
-				wsc_generate_pin, "s", "", "pin");
-	l_dbus_interface_method(interface, "StartPin", 0,
-				wsc_start_pin, "", "s", "pin");
-	l_dbus_interface_method(interface, "Cancel", 0,
-				wsc_cancel, "", "");
-}
+static void setup_wsc_interface(struct l_dbus_interface *interface){}
 
 static void wsc_free(void *userdata)
 {
