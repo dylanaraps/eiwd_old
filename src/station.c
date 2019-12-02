@@ -74,7 +74,7 @@ struct station {
 	struct l_dbus_message *disconnect_pending;
 	struct l_dbus_message *scan_pending;
 	struct signal_agent *signal_agent;
-	uint32_t dbus_scan_id;
+	uint32_t scan_id;
 	uint32_t quick_scan_id;
 	uint32_t hidden_network_scan_id;
 
@@ -2399,7 +2399,6 @@ next:
 	network = network_psk ? : network_open;
 
 	network_connect_new_hidden_network(network);
-	l_dbus_message_unref(msg);
 
 	return true;
 }
@@ -2441,21 +2440,6 @@ static void station_disconnect_cb(struct netdev *netdev, bool success,
 	l_debug("%u, success: %d",
 			netdev_get_ifindex(station->netdev), success);
 
-	if (station->disconnect_pending) {
-		struct l_dbus_message *reply;
-
-		if (success) {
-			reply = l_dbus_message_new_method_return(
-						station->disconnect_pending);
-			l_dbus_message_set_arguments(reply, "");
-		} else
-			reply = dbus_error_failed(station->disconnect_pending);
-
-
-		dbus_pending_reply(&station->disconnect_pending, reply);
-
-	}
-
 	station_enter_state(station, STATION_STATE_DISCONNECTED);
 
 	if (station->autoconnect)
@@ -2495,12 +2479,6 @@ struct signal_agent {
 	unsigned int disconnect_watch;
 };
 
-static void station_signal_agent_notify(struct signal_agent *agent,
-					const char *device_path, uint8_t level)
-{
-	struct l_dbus_message *msg;
-}
-
 static void station_rssi_level_changed(struct station *station,
 					uint8_t level_idx)
 {
@@ -2508,15 +2486,6 @@ static void station_rssi_level_changed(struct station *station,
 
 	if (!station->signal_agent)
 		return;
-
-	station_signal_agent_notify(station->signal_agent,
-					netdev_get_path(netdev), level_idx);
-}
-
-static void station_signal_agent_release(struct signal_agent *agent,
-						const char *device_path)
-{
-	struct l_dbus_message *msg;
 }
 
 static void signal_agent_free(void *data)
@@ -2649,26 +2618,12 @@ static void station_free(struct station *station)
 	periodic_scan_stop(station);
 
 	if (station->signal_agent) {
-		station_signal_agent_release(station->signal_agent,
-					netdev_get_path(station->netdev));
 		signal_agent_free(station->signal_agent);
 	}
 
-	if (station->connect_pending)
-		dbus_pending_reply(&station->connect_pending,
-				dbus_error_aborted(station->connect_pending));
-
-	if (station->disconnect_pending)
-		dbus_pending_reply(&station->disconnect_pending,
-			dbus_error_aborted(station->disconnect_pending));
-
-	if (station->scan_pending)
-		dbus_pending_reply(&station->scan_pending,
-			dbus_error_aborted(station->scan_pending));
-
-	if (station->dbus_scan_id)
+	if (station->scan_id)
 		scan_cancel(netdev_get_wdev_id(station->netdev),
-				station->dbus_scan_id);
+				station->scan_id);
 
 	if (station->quick_scan_id)
 		scan_cancel(netdev_get_wdev_id(station->netdev),
