@@ -66,34 +66,6 @@ static void device_ap_roam_frame_event(struct netdev *netdev,
 	station_ap_directed_roam(station, hdr, body, body_len);
 }
 
-struct set_generic_cb_data {
-	struct device *device;
-	struct l_dbus *dbus;
-	struct l_dbus_message *message;
-	l_dbus_property_complete_cb_t complete;
-};
-
-static void set_generic_destroy(void *user_data)
-{
-	struct set_generic_cb_data *cb_data = user_data;
-
-	l_free(cb_data);
-}
-
-static void set_powered_cb(struct netdev *netdev, int result, void *user_data)
-{
-	struct set_generic_cb_data *cb_data = user_data;
-	cb_data->complete(cb_data->dbus, cb_data->message, NULL);
-	cb_data->message = NULL;
-}
-
-static void set_mode_cb(struct netdev *netdev, int result, void *user_data)
-{
-	struct set_generic_cb_data *cb_data = user_data;
-	cb_data->complete(cb_data->dbus, cb_data->message, NULL);
-	cb_data->message = NULL;
-}
-
 static void device_wiphy_state_changed_event(struct wiphy *wiphy,
 					enum wiphy_state_watch_event event,
 					void *user_data)
@@ -156,7 +128,6 @@ static void device_netdev_notify(struct netdev *netdev,
 	struct device *device;
 	const char *path = netdev_get_path(netdev);
 
-	/* device = l_dbus_object_get_data(dbus, path, IWD_DEVICE_INTERFACE); */
     /* TODO: FIX */
     device = NULL;
 
