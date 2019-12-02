@@ -6,7 +6,7 @@ mkdir -p .cache
 cd .cache
 wget https://mirrors.edge.kernel.org/pub/linux/libs/ell/ell-$ell_version.tar.xz
 tar xvf "ell-$ell_version.tar.xz"
-cp -r "ell-$ell_version/ell/" ../ell
+cp -R "ell-$ell_version/ell/" ../ell
 cd ..
 
 autoreconf -fis
