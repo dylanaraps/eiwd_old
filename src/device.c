@@ -46,7 +46,6 @@ struct device {
 	struct netdev *netdev;
 
 	bool powered : 1;		/* Current IFUP state */
-	bool dbus_powered : 1;		/* Last IFUP state wanted via D-Bus */
 
 	uint32_t ap_roam_watch;
 	uint32_t wiphy_rfkill_watch;
@@ -68,30 +67,6 @@ static void device_ap_roam_frame_event(struct netdev *netdev,
 	station_ap_directed_roam(station, hdr, body, body_len);
 }
 
-static bool device_property_get_name(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool device_property_get_address(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool device_property_get_powered(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
 struct set_generic_cb_data {
 	struct device *device;
 	struct l_dbus *dbus;
@@ -103,140 +78,21 @@ static void set_generic_destroy(void *user_data)
 {
 	struct set_generic_cb_data *cb_data = user_data;
 
-	/* Message hasn't been replied to, generate an Aborted error */
-	if (cb_data->message)
-		cb_data->complete(cb_data->dbus, cb_data->message,
-					dbus_error_aborted(cb_data->message));
-
 	l_free(cb_data);
 }
 
 static void set_powered_cb(struct netdev *netdev, int result, void *user_data)
 {
 	struct set_generic_cb_data *cb_data = user_data;
-	struct l_dbus_message *reply = NULL;
-
-	if (result < 0)
-		reply = dbus_error_failed(cb_data->message);
-
 	cb_data->complete(cb_data->dbus, cb_data->message, reply);
 	cb_data->message = NULL;
-}
-
-static struct l_dbus_message *device_property_set_powered(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_iter *new_value,
-					l_dbus_property_complete_cb_t complete,
-					void *user_data)
-{
-	struct device *device = user_data;
-	bool powered;
-	struct set_generic_cb_data *cb_data;
-	int r;
-
-	if (!l_dbus_message_iter_get_variant(new_value, "b", &powered))
-		return dbus_error_invalid_args(message);
-
-	device->dbus_powered = powered;
-
-	if (powered == device->powered) {
-		complete(dbus, message, NULL);
-
-		return NULL;
-	}
-
-	cb_data = l_new(struct set_generic_cb_data, 1);
-	cb_data->device = device;
-	cb_data->dbus = dbus;
-	cb_data->message = message;
-	cb_data->complete = complete;
-
-	r = netdev_set_powered(device->netdev, powered, set_powered_cb,
-					cb_data, set_generic_destroy);
-	if (r < 0) {
-		l_free(cb_data);
-		return dbus_error_from_errno(r, message);
-	}
-
-	return NULL;
-}
-
-static bool device_property_get_adapter(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool device_property_get_mode(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
 }
 
 static void set_mode_cb(struct netdev *netdev, int result, void *user_data)
 {
 	struct set_generic_cb_data *cb_data = user_data;
-	struct l_dbus_message *reply = NULL;
-
-	if (result < 0)
-		reply = dbus_error_from_errno(result, cb_data->message);
-
 	cb_data->complete(cb_data->dbus, cb_data->message, reply);
 	cb_data->message = NULL;
-}
-
-static struct l_dbus_message *device_property_set_mode(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_iter *new_value,
-					l_dbus_property_complete_cb_t complete,
-					void *user_data)
-{
-	struct device *device = user_data;
-	struct netdev *netdev = device->netdev;
-	const char *mode;
-	enum netdev_iftype iftype;
-	int r;
-	struct set_generic_cb_data *cb_data;
-
-	if (!l_dbus_message_iter_get_variant(new_value, "s", &mode))
-		return dbus_error_invalid_args(message);
-
-	if (!strcmp(mode, "station"))
-		iftype = NETDEV_IFTYPE_STATION;
-	else if (!strcmp(mode, "ap"))
-		iftype = NETDEV_IFTYPE_AP;
-	else if (!strcmp(mode, "ad-hoc"))
-		iftype = NETDEV_IFTYPE_ADHOC;
-	else
-		return dbus_error_invalid_args(message);
-
-	if (iftype == netdev_get_iftype(netdev)) {
-		complete(dbus, message, NULL);
-		return NULL;
-	}
-
-	cb_data = l_new(struct set_generic_cb_data, 1);
-	cb_data->device = device;
-	cb_data->dbus = dbus;
-	cb_data->message = message;
-	cb_data->complete = complete;
-
-	r = netdev_set_iftype(device->netdev, iftype, set_mode_cb,
-					cb_data, set_generic_destroy);
-	if (r < 0) {
-		l_free(cb_data);
-		return dbus_error_from_errno(r, message);
-	}
-
-	return NULL;
-}
-
-static void setup_device_interface(struct l_dbus_interface *interface)
-{
 }
 
 static void device_wiphy_state_changed_event(struct wiphy *wiphy,
@@ -249,9 +105,6 @@ static void device_wiphy_state_changed_event(struct wiphy *wiphy,
 	case WIPHY_STATE_WATCH_EVENT_RFKILLED:
 		break;
 	case WIPHY_STATE_WATCH_EVENT_POWERED:
-		if (device->dbus_powered)
-			netdev_set_powered(device->netdev, true,
-							NULL, NULL, NULL);
 		break;
 	}
 }
@@ -278,7 +131,6 @@ static struct device *device_create(struct wiphy *wiphy, struct netdev *netdev)
 
 	device->powered = netdev_get_is_up(netdev);
 
-	device->dbus_powered = true;
 	device->wiphy_rfkill_watch =
 		wiphy_state_watch_add(wiphy, device_wiphy_state_changed_event,
 					device, NULL);
