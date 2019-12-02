@@ -166,63 +166,6 @@ static void adhoc_handshake_event(struct handshake_state *hs,
 	}
 }
 
-static struct eapol_sm *adhoc_new_sm(struct sta_state *sta, bool authenticator,
-					const uint8_t *gtk_rsc)
-{
-	struct adhoc_state *adhoc = sta->adhoc;
-	struct netdev *netdev = adhoc->netdev;
-	const uint8_t *own_addr = netdev_get_address(netdev);
-	struct ie_rsn_info rsn;
-	uint8_t bss_rsne[24];
-	struct handshake_state *hs;
-	struct eapol_sm *sm;
-
-	/* fill in only what handshake setup requires */
-	adhoc_set_rsn_info(adhoc, &rsn);
-	ie_build_rsne(&rsn, bss_rsne);
-
-	hs = netdev_handshake_state_new(netdev);
-	if (!hs) {
-		l_error("could not create handshake object");
-		return NULL;
-	}
-
-	handshake_state_set_event_func(hs, adhoc_handshake_event, sta);
-	handshake_state_set_ssid(hs, (void *)adhoc->ssid, strlen(adhoc->ssid));
-	/* we dont have the connecting peer rsn info, so just set ap == own */
-	handshake_state_set_authenticator_ie(hs, bss_rsne);
-	handshake_state_set_supplicant_ie(hs, bss_rsne);
-	handshake_state_set_pmk(hs, adhoc->pmk, 32);
-
-	if (authenticator) {
-		handshake_state_set_authenticator_address(hs, own_addr);
-		handshake_state_set_supplicant_address(hs, sta->addr);
-		handshake_state_set_authenticator(hs, true);
-	} else {
-		handshake_state_set_authenticator_address(hs, sta->addr);
-		handshake_state_set_supplicant_address(hs, own_addr);
-	}
-
-	if (gtk_rsc)
-		handshake_state_set_gtk(hs, adhoc->gtk, adhoc->gtk_index,
-					gtk_rsc);
-
-	sm = eapol_sm_new(hs);
-	if (!sm) {
-		l_error("could not create sm object");
-		return NULL;
-	}
-
-	eapol_sm_set_listen_interval(sm, 100);
-
-	if (authenticator)
-		sta->hs_auth = hs;
-	else
-		sta->hs_sta = hs;
-
-	return sm;
-}
-
 static void adhoc_add_interface(struct netdev *netdev)
 {
 	struct adhoc_state *adhoc;
