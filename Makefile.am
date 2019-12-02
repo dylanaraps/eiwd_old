@@ -219,11 +219,6 @@ builtin_modules += sim_hardcoded
 builtin_sources += plugins/sim_hardcoded.c
 endif
 
-if OFONO
-builtin_modules += ofono
-builtin_sources += plugins/ofono.c
-endif
-
 if MANUAL_PAGES
 man_MANS += src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5
 endif
@@ -418,7 +413,6 @@ CLEANFILES =
 
 DISTCHECK_CONFIGURE_FLAGS =  \
 				--enable-sim-hardcoded \
-				--enable-ofono \
 				--enable-wired \
 				--enable-hwsim \
 				--enable-tools
