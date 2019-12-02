@@ -36,7 +36,6 @@
 #include "src/iwd.h"
 #include "src/module.h"
 #include "src/wiphy.h"
-#include "src/dbus.h"
 #include "src/eap.h"
 #include "src/eapol.h"
 #include "src/rfkill.h"
@@ -428,7 +427,7 @@ int main(int argc, char *argv[])
 	exit_status = EXIT_FAILURE;
 
 	if (!storage_create_dirs())
-		goto fail_dbus;
+		goto fail;
 
 	genl = l_genl_new();
 	if (!genl) {
@@ -447,7 +446,7 @@ int main(int argc, char *argv[])
 	iwd_modules_exit();
 
 	storage_cleanup_dirs();
-fail_dbus:
+fail:
 	l_genl_unref(genl);
 fail_genl:
 	l_settings_free(iwd_config);
