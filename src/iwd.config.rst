@@ -160,7 +160,7 @@ The group ``[Network]`` contains network configuration related settings.
    :align: left
 
    * - NameResolvingService
-     - Values: resolvconf, **systemd**
+     - Values: resolvconf
 
        Configures a DNS resolution method used by the system.
 
@@ -168,7 +168,7 @@ The group ``[Network]`` contains network configuration related settings.
        ``EnableNetworkConfiguration`` and provides the choice of system
        resolver integration.
 
-       If not specified, ``systemd`` is used as default.
+       If not specified, ``resolvconf`` is used as default.
 
    * - RoutePriorityOffset
      - Values: uint32 value (default: **300**)
