@@ -496,11 +496,6 @@ static bool known_network_property_get_name(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct network_info *network = user_data;
-
-	l_dbus_message_builder_append_basic(builder, 's',
-						network_info_get_name(network));
-
 	return true;
 }
 
@@ -509,11 +504,6 @@ static bool known_network_property_get_type(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct network_info *network = user_data;
-
-	l_dbus_message_builder_append_basic(builder, 's',
-						network_info_get_type(network));
-
 	return true;
 }
 
@@ -522,11 +512,6 @@ static bool known_network_property_get_hidden(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct network_info *network = user_data;
-	bool is_hidden = network->is_hidden;
-
-	l_dbus_message_builder_append_basic(builder, 'b', &is_hidden);
-
 	return true;
 }
 
@@ -535,11 +520,6 @@ static bool known_network_property_get_autoconnect(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct network_info *network = user_data;
-	bool autoconnect = network->is_autoconnectable;
-
-	l_dbus_message_builder_append_basic(builder, 'b', &autoconnect);
-
 	return true;
 }
 
@@ -577,43 +557,10 @@ static bool known_network_property_get_last_connected(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct network_info *network = user_data;
-	char datestr[64];
-	struct tm tm;
-	time_t seconds = l_time_to_secs(network->connected_time);
-
-	if (network->connected_time == 0)
-		return false;
-
-	gmtime_r(&seconds, &tm);
-
-	if (!strftime(datestr, sizeof(datestr), "%FT%TZ", &tm))
-		return false;
-
-	l_dbus_message_builder_append_basic(builder, 's', datestr);
-
 	return true;
 }
 
-static void setup_known_network_interface(struct l_dbus_interface *interface)
-{
-	l_dbus_interface_method(interface, "Forget", 0,
-				known_network_forget, "", "");
-
-	l_dbus_interface_property(interface, "Name", 0, "s",
-					known_network_property_get_name, NULL);
-	l_dbus_interface_property(interface, "Type", 0, "s",
-					known_network_property_get_type, NULL);
-	l_dbus_interface_property(interface, "Hidden", 0, "b",
-					known_network_property_get_hidden,
-					NULL);
-	l_dbus_interface_property(interface, "AutoConnect", 0, "b",
-					known_network_property_get_autoconnect,
-					known_network_property_set_autoconnect);
-	l_dbus_interface_property(interface, "LastConnectedTime", 0, "s",
-				known_network_property_get_last_connected,
-				NULL);
-}
+static void setup_known_network_interface(struct l_dbus_interface *interface){}
 
 void known_networks_remove(struct network_info *network)
 {

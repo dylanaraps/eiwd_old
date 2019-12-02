@@ -73,10 +73,6 @@ static bool device_property_get_name(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct device *device = user_data;
-
-	l_dbus_message_builder_append_basic(builder, 's',
-					netdev_get_name(device->netdev));
 	return true;
 }
 
@@ -85,12 +81,6 @@ static bool device_property_get_address(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct device *device = user_data;
-	const char *str;
-
-	str = util_address_to_string(netdev_get_address(device->netdev));
-	l_dbus_message_builder_append_basic(builder, 's', str);
-
 	return true;
 }
 
@@ -99,11 +89,6 @@ static bool device_property_get_powered(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct device *device = user_data;
-	bool powered = device->powered;
-
-	l_dbus_message_builder_append_basic(builder, 'b', &powered);
-
 	return true;
 }
 
@@ -181,11 +166,6 @@ static bool device_property_get_adapter(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct device *device = user_data;
-
-	l_dbus_message_builder_append_basic(builder, 'o',
-					wiphy_get_path(device->wiphy));
-
 	return true;
 }
 
@@ -194,15 +174,6 @@ static bool device_property_get_mode(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct device *device = user_data;
-	uint32_t iftype = netdev_get_iftype(device->netdev);
-	const char *modestr = dbus_iftype_to_string(iftype);
-
-	if (modestr == NULL)
-		modestr = "unknown";
-
-	l_dbus_message_builder_append_basic(builder, 's', modestr);
-
 	return true;
 }
 

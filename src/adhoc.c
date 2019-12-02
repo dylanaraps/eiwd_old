@@ -566,15 +566,12 @@ static struct l_dbus_message *adhoc_dbus_stop(struct l_dbus *dbus,
 static void sta_append(void *data, void *user_data)
 {
 	struct sta_state *sta = data;
-	struct l_dbus_message_builder *builder = user_data;
 	const char* macstr;
 
 	if (!sta->authenticated)
 		return;
 
 	macstr = util_address_to_string(sta->addr);
-
-	l_dbus_message_builder_append_basic(builder, 's', macstr);
 }
 
 static bool adhoc_property_get_peers(struct l_dbus *dbus,
@@ -582,14 +579,6 @@ static bool adhoc_property_get_peers(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct adhoc_state *adhoc = user_data;
-
-	l_dbus_message_builder_enter_array(builder, "s");
-
-	l_queue_foreach(adhoc->sta_states, sta_append, builder);
-
-	l_dbus_message_builder_leave_array(builder);
-
 	return true;
 }
 
@@ -598,11 +587,6 @@ static bool adhoc_property_get_started(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct adhoc_state *adhoc = user_data;
-	bool started = adhoc->started;
-
-	l_dbus_message_builder_append_basic(builder, 'b', &started);
-
 	return true;
 }
 

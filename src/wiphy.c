@@ -1100,9 +1100,6 @@ static bool wiphy_property_get_powered(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct wiphy *wiphy = user_data;
-	bool value = !wiphy->soft_rfkill && !wiphy->hard_rfkill;
-
 	return true;
 }
 
@@ -1140,11 +1137,6 @@ static bool wiphy_property_get_model(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct wiphy *wiphy = user_data;
-
-	if (!wiphy->model_str)
-		return false;
-
 	return true;
 }
 
@@ -1153,11 +1145,6 @@ static bool wiphy_property_get_vendor(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct wiphy *wiphy = user_data;
-
-	if (!wiphy->vendor_str)
-		return false;
-
 	return true;
 }
 
@@ -1166,21 +1153,6 @@ static bool wiphy_property_get_name(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct wiphy *wiphy = user_data;
-	char buf[20];
-
-	if (l_utf8_validate(wiphy->name, strlen(wiphy->name), NULL)) {
-		return true;
-	}
-
-	/*
-	 * In the highly unlikely scenario that the wiphy name is not utf8,
-	 * we simply use the canonical name phy<index>.  The kernel guarantees
-	 * that this name cannot be taken by any other wiphy, so this should
-	 * be safe enough.
-	 */
-	sprintf(buf, "phy%d", wiphy->id);
-
 	return true;
 }
 
@@ -1194,18 +1166,10 @@ static bool wiphy_property_get_supported_modes(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct wiphy *wiphy = user_data;
-	unsigned int j = 0;
-	char **iftypes = wiphy_get_supported_iftypes(wiphy, WIPHY_MODE_MASK);
-
-	l_strfreev(iftypes);
-
 	return true;
 }
 
-static void setup_wiphy_interface(struct l_dbus_interface *interface)
-{
-}
+static void setup_wiphy_interface(struct l_dbus_interface *interface){}
 
 static int wiphy_init(void)
 {

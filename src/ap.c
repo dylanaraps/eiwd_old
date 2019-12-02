@@ -1603,11 +1603,6 @@ static bool ap_dbus_property_get_started(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct ap_state *ap = user_data;
-	bool started = ap->started;
-
-	l_dbus_message_builder_append_basic(builder, 'b', &started);
-
 	return true;
 }
 

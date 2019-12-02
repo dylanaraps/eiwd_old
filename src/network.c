@@ -1211,10 +1211,6 @@ static bool network_property_get_name(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct network *network = user_data;
-
-	l_dbus_message_builder_append_basic(builder, 's',
-						network_get_ssid(network));
 	return true;
 }
 
@@ -1223,12 +1219,6 @@ static bool network_property_is_connected(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct network *network = user_data;
-	struct station *station = network->station;
-	bool connected;
-
-	connected = station_get_connected_network(station) == network;
-	l_dbus_message_builder_append_basic(builder, 'b', &connected);
 	return true;
 }
 
@@ -1237,13 +1227,6 @@ static bool network_property_get_device(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct network *network = user_data;
-	struct station *station = network->station;
-	struct netdev *netdev = station_get_netdev(station);
-
-	l_dbus_message_builder_append_basic(builder, 'o',
-						netdev_get_path(netdev));
-
 	return true;
 }
 
@@ -1253,12 +1236,6 @@ static bool network_property_get_type(struct l_dbus *dbus,
 					void *user_data)
 
 {
-	struct network *network = user_data;
-	enum security security = network_get_security(network);
-
-	l_dbus_message_builder_append_basic(builder, 's',
-						security_to_str(security));
-
 	return true;
 }
 
@@ -1267,14 +1244,6 @@ static bool network_property_get_known_network(struct l_dbus *dbus,
 					struct l_dbus_message_builder *builder,
 					void *user_data)
 {
-	struct network *network = user_data;
-
-	if (!network->info)
-		return false;
-
-	l_dbus_message_builder_append_basic(builder, 'o',
-					network_info_get_path(network->info));
-
 	return true;
 }
 
