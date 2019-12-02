@@ -38,7 +38,6 @@
 #include "src/eapol.h"
 #include "src/handshake.h"
 #include "src/mpdu.h"
-#include "src/dbus.h"
 #include "src/nl80211util.h"
 
 struct adhoc_state {
@@ -49,7 +48,6 @@ struct adhoc_state {
 	struct l_queue *sta_states;
 	uint32_t sta_watch_id;
 	uint32_t netdev_watch_id;
-	struct l_dbus_message *pending;
 	uint32_t ciphers;
 	uint32_t group_cipher;
 	uint8_t gtk[CRYPTO_MAX_GTK_LEN];
