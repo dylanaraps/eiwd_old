@@ -119,10 +119,6 @@ static void adhoc_remove_sta(struct sta_state *sta)
 
 static void adhoc_reset(struct adhoc_state *adhoc)
 {
-	if (adhoc->pending)
-		dbus_pending_reply(&adhoc->pending,
-				dbus_error_aborted(adhoc->pending));
-
 	l_free(adhoc->ssid);
 
 	netdev_station_watch_remove(adhoc->netdev, adhoc->sta_watch_id);
@@ -433,20 +429,14 @@ static void adhoc_station_changed_cb(struct netdev *netdev,
 static void adhoc_join_cb(struct netdev *netdev, int result, void *user_data)
 {
 	struct adhoc_state *adhoc = user_data;
-	struct l_dbus_message *reply;
 
 	if (result < 0) {
 		l_error("Failed to join adhoc network, %i", result);
-		dbus_pending_reply(&adhoc->pending,
-					dbus_error_failed(adhoc->pending));
 		return;
 	}
 
 	adhoc->sta_watch_id = netdev_station_watch_add(netdev,
 			adhoc_station_changed_cb, adhoc);
-
-	reply = l_dbus_message_new_method_return(adhoc->pending);
-	dbus_pending_reply(&adhoc->pending, reply);
 
 	adhoc->started = true;
 }
@@ -533,8 +523,6 @@ static void adhoc_leave_cb(struct netdev *netdev, int result, void *user_data)
 
 	if (result < 0) {
 		l_error("Failed to leave adhoc network, %i", result);
-		dbus_pending_reply(&adhoc->pending,
-				dbus_error_failed(adhoc->pending));
 		return;
 	}
 
@@ -542,25 +530,6 @@ static void adhoc_leave_cb(struct netdev *netdev, int result, void *user_data)
 			l_dbus_message_new_method_return(adhoc->pending));
 
 	adhoc_reset(adhoc);
-}
-
-static struct l_dbus_message *adhoc_dbus_stop(struct l_dbus *dbus,
-						struct l_dbus_message *message,
-						void *user_data)
-{
-	struct adhoc_state *adhoc = user_data;
-
-	if (adhoc->pending)
-		return dbus_error_busy(message);
-
-	/* already stopped, no-op */
-	if (!adhoc->started)
-		return l_dbus_message_new_method_return(message);
-
-	if (!netdev_leave_adhoc(adhoc->netdev, adhoc_leave_cb, adhoc))
-		return dbus_error_failed(message);
-
-	return NULL;
 }
 
 static void sta_append(void *data, void *user_data)
@@ -574,34 +543,7 @@ static void sta_append(void *data, void *user_data)
 	macstr = util_address_to_string(sta->addr);
 }
 
-static bool adhoc_property_get_peers(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool adhoc_property_get_started(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static void adhoc_setup_interface(struct l_dbus_interface *interface)
-{
-	l_dbus_interface_method(interface, "Start", 0, adhoc_dbus_start, "",
-					"ss", "ssid", "wpa2_psk");
-	l_dbus_interface_method(interface, "Stop", 0, adhoc_dbus_stop, "", "");
-	l_dbus_interface_method(interface, "StartOpen", 0,
-					adhoc_dbus_start_open, "", "s", "ssid");
-	l_dbus_interface_property(interface, "ConnectedPeers", 0, "as",
-					adhoc_property_get_peers, NULL);
-	l_dbus_interface_property(interface, "Started", 0, "b",
-					adhoc_property_get_started, NULL);
-}
+static void adhoc_setup_interface(struct l_dbus_interface *interface){}
 
 static void adhoc_destroy_interface(void *user_data)
 {
