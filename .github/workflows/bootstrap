@@ -2,7 +2,7 @@
 
 ell_version=0.26
 
-mkdir -p .cache
+mkdir -p .cache build-aux
 cd .cache
 wget https://mirrors.edge.kernel.org/pub/linux/libs/ell/ell-$ell_version.tar.xz
 tar xvf "ell-$ell_version.tar.xz"
