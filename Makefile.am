@@ -466,7 +466,7 @@ unit_test_p2p_LDADD = $(ell_ldadd)
 
 TESTS = $(unit_tests)
 
-EXTRA_DIST = src/genbuiltin src/iwd.service.in src/net.connman.iwd.service \
+EXTRA_DIST = src/genbuiltin \
 			wired/ead.service.in wired/net.connman.ead.service \
 			src/80-iwd.link src/pkcs8.conf unit/gencerts.cnf \
 			$(manual_pages) $(patsubst %.1,%.rst, \
@@ -481,7 +481,7 @@ if MAINTAINER_MODE
 AM_CFLAGS += -DHAVE_PKCS8_SUPPORT
 endif
 
-CLEANFILES = src/iwd.service wired/ead.service
+CLEANFILES = wired/ead.service
 
 DISTCHECK_CONFIGURE_FLAGS =  \
 				--enable-sim-hardcoded \

@@ -1,5 +1,0 @@
-[D-BUS Service]
-Name=net.connman.iwd
-Exec=/bin/false
-User=root
-SystemdService=iwd.service
