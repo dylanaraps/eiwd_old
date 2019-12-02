@@ -1,0 +1,15 @@
+#!/bin/sh -e
+
+ell_version=0.26
+
+mkdir -p .cache
+cd .cache
+wget https://mirrors.edge.kernel.org/pub/linux/libs/ell/ell-$ell_version.tar.xz
+tar xvf "ell-$ell_version.tar.xz"
+cp -r ell ../ell
+cd ..
+
+autoreconf -fis
+./configure
+make
+make check
