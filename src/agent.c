@@ -76,8 +76,6 @@ static unsigned int agent_timeout_input_request(void)
 
 static void send_request(struct agent *agent, const char *request)
 {
-	struct l_dbus_message *message;
-
 	l_debug("send %s request to %s %s", request, agent->owner,
 							agent->path);
 }
@@ -85,7 +83,6 @@ static void send_request(struct agent *agent, const char *request)
 static void send_cancel_request(void *user_data, int reason)
 {
 	struct agent *agent = user_data;
-	struct l_dbus_message *message;
 	const char *reasonstr;
 
 	switch (reason) {
