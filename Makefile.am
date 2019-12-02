@@ -142,7 +142,7 @@ man_MANS =
 endif
 
 manual_pages = src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5 \
-		wired/ead.8 tools/hwsim.1
+		wired/ead.8
 
 eap_sources = src/eap.c src/eap.h src/eap-private.h \
 				src/eap-wsc.c src/eap-wsc.h \
@@ -237,20 +237,6 @@ wired_ead_DEPENDENCIES = $(ell_dependencies)
 
 if MANUAL_PAGES
 man_MANS += wired/ead.8
-endif
-endif
-
-if HWSIM
-bin_PROGRAMS += tools/hwsim
-
-tools_hwsim_SOURCES = tools/hwsim.c src/mpdu.h \
-					src/util.h src/util.c \
-					src/storage.h src/storage.c \
-					src/common.h src/common.c
-tools_hwsim_LDADD = $(ell_ldadd)
-
-if MANUAL_PAGES
-man_MANS += tools/hwsim.1
 endif
 endif
 
@@ -414,7 +400,6 @@ CLEANFILES =
 DISTCHECK_CONFIGURE_FLAGS =  \
 				--enable-sim-hardcoded \
 				--enable-wired \
-				--enable-hwsim \
 				--enable-tools
 
 DISTCLEANFILES = $(BUILT_SOURCES) $(unit_tests) $(manual_pages)
