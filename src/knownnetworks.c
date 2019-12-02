@@ -39,7 +39,6 @@
 #include "src/storage.h"
 #include "src/common.h"
 #include "src/network.h"
-#include "src/dbus.h"
 #include "src/knownnetworks.h"
 #include "src/scan.h"
 #include "src/util.h"
@@ -117,11 +116,6 @@ int known_network_offset(const struct network_info *target)
 	}
 
 	return -ENOENT;
-}
-
-static void known_network_register_dbus(struct network_info *network)
-{
-	const char *path = known_network_get_path(network);
 }
 
 static void known_network_set_autoconnect(struct network_info *network,
@@ -475,93 +469,6 @@ int known_network_add_frequency(struct network_info *info, uint32_t frequency)
 	return 0;
 }
 
-static struct l_dbus_message *known_network_forget(struct l_dbus *dbus,
-						struct l_dbus_message *message,
-						void *user_data)
-{
-	struct network_info *network = user_data;
-	struct l_dbus_message *reply;
-
-	/* Other actions taken care of by the filesystem watch callback */
-	network->ops->remove(network);
-
-	reply = l_dbus_message_new_method_return(message);
-	l_dbus_message_set_arguments(reply, "");
-
-	return reply;
-}
-
-static bool known_network_property_get_name(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool known_network_property_get_type(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool known_network_property_get_hidden(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool known_network_property_get_autoconnect(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static struct l_dbus_message *known_network_property_set_autoconnect(
-					struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_iter *new_value,
-					l_dbus_property_complete_cb_t complete,
-					void *user_data)
-{
-	struct network_info *network = user_data;
-	struct l_settings *settings;
-	bool autoconnect;
-
-	if (!l_dbus_message_iter_get_variant(new_value, "b", &autoconnect))
-		return dbus_error_invalid_args(message);
-
-	if (network->is_autoconnectable == autoconnect)
-		return l_dbus_message_new_method_return(message);
-
-	settings = network->ops->open(network);
-	if (!settings)
-		return dbus_error_failed(message);
-
-	l_settings_set_bool(settings, "Settings", "AutoConnect", autoconnect);
-
-	network->ops->sync(network, settings);
-	l_settings_free(settings);
-
-	return l_dbus_message_new_method_return(message);
-}
-
-static bool known_network_property_get_last_connected(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static void setup_known_network_interface(struct l_dbus_interface *interface){}
-
 void known_networks_remove(struct network_info *network)
 {
 	if (network->is_hidden)
@@ -587,7 +494,6 @@ void known_networks_remove(struct network_info *network)
 void known_networks_add(struct network_info *network)
 {
 	l_queue_insert(known_networks, network, connected_time_compare, NULL);
-	known_network_register_dbus(network);
 
 	WATCHLIST_NOTIFY(&known_network_watches,
 				known_networks_watch_func_t,
