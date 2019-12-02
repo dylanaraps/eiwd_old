@@ -43,7 +43,6 @@
 #include "src/crypto.h"
 #include "src/scan.h"
 #include "src/netdev.h"
-#include "src/dbus.h"
 #include "src/rfkill.h"
 #include "src/wiphy.h"
 #include "src/storage.h"
@@ -53,6 +52,9 @@
 #include "src/nl80211util.h"
 
 #define EXT_CAP_LEN 10
+
+/* TODO: Remove this. */
+#define IWD_BASE_PATH "/net/connman/iwd"
 
 static struct l_genl_family *nl80211 = NULL;
 static struct l_hwdb *hwdb;
@@ -1117,81 +1119,10 @@ static void wiphy_rfkill_cb(unsigned int wiphy_id, bool soft, bool hard,
 				wiphy, event);
 }
 
-static bool wiphy_property_get_powered(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static struct l_dbus_message *wiphy_property_set_powered(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_iter *new_value,
-					l_dbus_property_complete_cb_t complete,
-					void *user_data)
-{
-	struct wiphy *wiphy = user_data;
-	bool old_powered, new_powered;
-
-	if (!l_dbus_message_iter_get_variant(new_value, "b", &new_powered))
-		return dbus_error_invalid_args(message);
-
-	old_powered = !wiphy->soft_rfkill && !wiphy->hard_rfkill;
-
-	if (old_powered == new_powered)
-		goto done;
-
-	if (wiphy->hard_rfkill)
-		return dbus_error_not_available(message);
-
-	if (!rfkill_set_soft_state(wiphy->id, !new_powered))
-		return dbus_error_failed(message);
-
-done:
-	complete(dbus, message, NULL);
-
-	return NULL;
-}
-
-static bool wiphy_property_get_model(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool wiphy_property_get_vendor(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool wiphy_property_get_name(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
 #define WIPHY_MODE_MASK	( \
 	(1 << (NL80211_IFTYPE_STATION - 1)) | \
 	(1 << (NL80211_IFTYPE_AP - 1)) | \
 	(1 << (NL80211_IFTYPE_ADHOC - 1)))
-
-static bool wiphy_property_get_supported_modes(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static void setup_wiphy_interface(struct l_dbus_interface *interface){}
 
 static int wiphy_init(void)
 {
