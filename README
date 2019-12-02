@@ -40,13 +40,9 @@ SYSTEM-WIDE CONFIG (/etc/iwd/main.conf)
     NameResolvingService=resolvconf
 
 
-PER-NETWORK CONFIGS (/var/lib/iwd/ssid.psk)
-
-    [Settings]
-    AutoConnect=true
+PER-NETWORK CONFIGS (/var/lib/iwd/ssid.psk) (or use iwd_passphrase)
 
     [Security]
-    PreSharedKey=c2b336460f6b294174d2abc08010ed1984208c451e66c22d7be1236ad38cffb7
     Passphrase=2645092660
 
 
@@ -54,7 +50,3 @@ SSID NAMING
 
 See: IWD.NETWORK(5) (man iwd.network).
 
-
-HOW DO I FIGURE OUT THE 'PreSharedKey'?
-
-Funny enough, you'll have to use 'wpa_passphrase'.
