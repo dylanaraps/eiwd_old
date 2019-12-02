@@ -70,8 +70,6 @@ static void device_wiphy_state_changed_event(struct wiphy *wiphy,
 					enum wiphy_state_watch_event event,
 					void *user_data)
 {
-	struct device *device = user_data;
-
 	switch (event) {
 	case WIPHY_STATE_WATCH_EVENT_RFKILLED:
 		break;
@@ -126,7 +124,6 @@ static void device_netdev_notify(struct netdev *netdev,
 					void *user_data)
 {
 	struct device *device;
-	const char *path = netdev_get_path(netdev);
 
     /* TODO: FIX */
     device = NULL;
@@ -163,13 +160,6 @@ static void device_netdev_notify(struct netdev *netdev,
 	default:
 		break;
 	}
-}
-
-static void destroy_device_interface(void *user_data)
-{
-	struct device *device = user_data;
-
-	device_free(device);
 }
 
 static int device_init(void)

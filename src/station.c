@@ -1109,13 +1109,10 @@ static void station_enter_state(struct station *station,
 						enum station_state state)
 {
 	uint64_t id = netdev_get_wdev_id(station->netdev);
-	bool disconnected;
 
 	l_debug("Old State: %s, new state: %s",
 			station_state_to_string(station->state),
 			station_state_to_string(state));
-
-	disconnected = !station_is_busy(station);
 
 	switch (state) {
 	case STATION_STATE_AUTOCONNECT_QUICK:
@@ -2331,80 +2328,6 @@ error:
     return;
 }
 
-static void station_hidden_network_scan_triggered(int err, void *user_data)
-{
-	struct station *station = user_data;
-
-	l_debug("");
-
-	if (!err)
-		return;
-}
-
-static bool station_hidden_network_scan_results(int err,
-						struct l_queue *bss_list,
-						void *userdata)
-{
-	struct station *station = userdata;
-	struct network *network_psk;
-	struct network *network_open;
-	struct network *network;
-	const char *ssid;
-	uint8_t ssid_len;
-	struct scan_bss *bss;
-
-	l_debug("");
-
-	station->connect_pending = false;
-
-	if (err) {
-		return false;
-	}
-
-	ssid_len = strlen(ssid);
-
-	while ((bss = l_queue_pop_head(bss_list))) {
-		if (bss->ssid_len != ssid_len ||
-					memcmp(bss->ssid, ssid, ssid_len))
-			goto next;
-
-		if (station_add_seen_bss(station, bss)) {
-			l_queue_push_tail(station->bss_list, bss);
-
-			continue;
-		}
-
-next:
-		scan_bss_free(bss);
-	}
-
-	l_queue_destroy(bss_list, NULL);
-
-	network_psk = station_network_find(station, ssid, SECURITY_PSK);
-	network_open = station_network_find(station, ssid, SECURITY_NONE);
-
-	if (!network_psk && !network_open) {
-		return true;
-	}
-
-	if (network_psk && network_open) {
-		return true;
-	}
-
-	network = network_psk ? : network_open;
-
-	network_connect_new_hidden_network(network);
-
-	return true;
-}
-
-static void station_hidden_network_scan_destroy(void *userdata)
-{
-	struct station *station = userdata;
-
-	station->hidden_network_scan_id = 0;
-}
-
 static void station_disconnect_reconnect_cb(struct netdev *netdev, bool success,
 					void *user_data)
 {
@@ -2477,10 +2400,7 @@ struct signal_agent {
 static void station_rssi_level_changed(struct station *station,
 					uint8_t level_idx)
 {
-	struct netdev *netdev = station->netdev;
-
-	if (!station->signal_agent)
-		return;
+    return;
 }
 
 static void signal_agent_free(void *data)
@@ -2581,54 +2501,6 @@ static struct station *station_create(struct netdev *netdev)
 	station->anqp_pending = l_queue_new();
 
 	return station;
-}
-
-static void station_free(struct station *station)
-{
-	l_debug("");
-
-	if (!l_queue_remove(station_list, station))
-		return;
-
-	if (station->connected_bss)
-		netdev_disconnect(station->netdev, NULL, NULL);
-
-	if (station->netconfig) {
-		netconfig_destroy(station->netconfig);
-		station->netconfig = NULL;
-	}
-
-	periodic_scan_stop(station);
-
-	if (station->signal_agent) {
-		signal_agent_free(station->signal_agent);
-	}
-
-	if (station->scan_id)
-		scan_cancel(netdev_get_wdev_id(station->netdev),
-				station->scan_id);
-
-	if (station->quick_scan_id)
-		scan_cancel(netdev_get_wdev_id(station->netdev),
-				station->quick_scan_id);
-
-	if (station->hidden_network_scan_id)
-		scan_cancel(netdev_get_wdev_id(station->netdev),
-				station->hidden_network_scan_id);
-
-	station_roam_state_clear(station);
-
-	l_queue_destroy(station->networks_sorted, NULL);
-	l_hashmap_destroy(station->networks, network_free);
-	l_queue_destroy(station->bss_list, bss_free);
-	l_queue_destroy(station->hidden_bss_list_sorted, NULL);
-	l_queue_destroy(station->autoconnect_list, l_free);
-
-	watchlist_destroy(&station->state_watches);
-
-	l_queue_destroy(station->anqp_pending, l_free);
-
-	l_free(station);
 }
 
 static void station_netdev_watch(struct netdev *netdev,

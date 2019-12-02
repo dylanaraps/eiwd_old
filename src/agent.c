@@ -31,8 +31,6 @@
 #include "src/iwd.h"
 #include "src/module.h"
 
-static unsigned int next_request_id = 0;
-
 enum agent_request_type {
 	AGENT_REQUEST_TYPE_PASSPHRASE,
 	AGENT_REQUEST_TYPE_USER_NAME_PASSWD,
@@ -58,18 +56,6 @@ struct agent {
 };
 
 static struct l_queue *agents;
-
-/*
- * How long we wait for user to input things.
- * Return value is in seconds.
- *
- * This should probably be configurable by user via
- * config file/command line option/env variable.
- */
-static unsigned int agent_timeout_input_request(void)
-{
-	return 120;
-}
 
 static void send_request(struct agent *agent, const char *request)
 {
@@ -199,16 +185,6 @@ static struct agent *agent_lookup(const char *owner)
 	}
 
 	return NULL;
-}
-
-static struct agent *get_agent(const char *owner)
-{
-	struct agent *agent = agent_lookup(owner);
-
-	if (agent)
-		return agent;
-
-	return l_queue_peek_head(agents);
 }
 
 static bool find_request(const void *a, const void *b)
