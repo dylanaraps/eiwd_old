@@ -4,7 +4,6 @@ eiwd - iwd without dbus
 GOALS
 
 * Get the daemon to function using config files (No iwctl and friends). DONE
-
 * Implement IPC between clients without DBUS. SOON(TM)
 
 
