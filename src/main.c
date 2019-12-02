@@ -56,7 +56,7 @@ static const char *nophys;
 static const char *plugins;
 static const char *noplugins;
 static const char *debugopt;
-static const char *ssid;
+static char *ssid;
 static bool terminating;
 static bool nl80211_complete;
 
@@ -104,7 +104,7 @@ static int encode_psk(char *ssid) {
         pos++;
     }
 
-    crypto_psk_from_passphrase(buf, (uint8_t *) ssid, strlen(ssid), &psk);
+    crypto_psk_from_passphrase(buf, ssid, strlen(ssid), psk);
     printf("%s\n", psk);
 
     return 0;
