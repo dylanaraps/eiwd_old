@@ -75,8 +75,7 @@ void station_ap_directed_roam(struct station *station,
 int __station_connect_network(struct station *station, struct network *network,
 				struct scan_bss *bss);
 void station_connect_network(struct station *station, struct network *network,
-				struct scan_bss *bss,
-				struct l_dbus_message *message);
+				struct scan_bss *bss);
 int station_disconnect(struct station *station);
 
 struct station *station_find(uint32_t ifindex);

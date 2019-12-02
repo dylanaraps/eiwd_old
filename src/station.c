@@ -70,9 +70,9 @@ struct station {
 	struct l_queue *hidden_bss_list_sorted;
 	struct l_hashmap *networks;
 	struct l_queue *networks_sorted;
-	struct l_dbus_message *connect_pending;
-	struct l_dbus_message *disconnect_pending;
-	struct l_dbus_message *scan_pending;
+	bool connect_pending;
+	bool disconnect_pending;
+	bool scan_pending;
 	struct signal_agent *signal_agent;
 	uint32_t scan_id;
 	uint32_t quick_scan_id;
@@ -1766,8 +1766,7 @@ static void station_neighbor_report_cb(struct netdev *netdev, int err,
 			err, err < 0 ? strerror(-err) : "");
 
 	/*
-	 * Check if we're still attempting to roam -- if dbus Disconnect
-	 * had been called in the meantime we just abort the attempt.
+	 * Check if we're still attempting to roam.
 	 */
 	if (!station->preparing_roam || err == -ENODEV)
 		return;
@@ -2286,8 +2285,7 @@ static void station_disconnect_onconnect_cb(struct netdev *netdev, bool success,
 
 static void station_disconnect_onconnect(struct station *station,
 					struct network *network,
-					struct scan_bss *bss,
-					struct l_dbus_message *message)
+					struct scan_bss *bss)
 {
 	if (netdev_disconnect(station->netdev, station_disconnect_onconnect_cb,
 								station) < 0) {
@@ -2304,17 +2302,16 @@ static void station_disconnect_onconnect(struct station *station,
 	station->connect_pending_network = network;
 	station->connect_pending_bss = bss;
 
-	station->connect_pending = l_dbus_message_ref(message);
+	station->connect_pending = true;
 }
 
 void station_connect_network(struct station *station, struct network *network,
-				struct scan_bss *bss,
-				struct l_dbus_message *message)
+				struct scan_bss *bss)
 {
 	int err;
 
 	if (station_is_busy(station)) {
-		station_disconnect_onconnect(station, network, bss, message);
+		station_disconnect_onconnect(station, network, bss);
 
 		return;
 	}
@@ -2325,7 +2322,7 @@ void station_connect_network(struct station *station, struct network *network,
 
 	station_enter_state(station, STATION_STATE_CONNECTING);
 
-	station->connect_pending = l_dbus_message_ref(message);
+	station->connect_pending = true;
 	station->autoconnect = true;
 
 	return;
@@ -2354,13 +2351,11 @@ static bool station_hidden_network_scan_results(int err,
 	struct network *network;
 	const char *ssid;
 	uint8_t ssid_len;
-	struct l_dbus_message *msg;
 	struct scan_bss *bss;
 
 	l_debug("");
 
-	msg = station->connect_pending;
-	station->connect_pending = NULL;
+	station->connect_pending = false;
 
 	if (err) {
 		return false;
@@ -2495,18 +2490,6 @@ static void signal_agent_free(void *data)
 	l_free(agent->owner);
 	l_free(agent->path);
 	l_free(agent);
-}
-
-static void signal_agent_disconnect(struct l_dbus *dbus, void *user_data)
-{
-	struct station *station = user_data;
-
-	l_debug("signal_agent %s disconnected", station->signal_agent->owner);
-
-	l_idle_oneshot(signal_agent_free, station->signal_agent, NULL);
-	station->signal_agent = NULL;
-
-	netdev_set_rssi_report_levels(station->netdev, NULL, 0);
 }
 
 void station_foreach(station_foreach_func_t func, void *user_data)
