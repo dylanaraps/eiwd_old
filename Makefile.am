@@ -164,7 +164,7 @@ eap_sources = src/eap.c src/eap.h src/eap-private.h \
 				src/mschaputil.h src/mschaputil.c
 
 if DAEMON
-bin_PROGRAMS += src/iwd
+bin_PROGRAMS += src/iwd iwd_passphrase
 
 src_iwd_SOURCES = src/main.c linux/nl80211.h src/iwd.h src/missing.h \
 					src/plugin.h src/plugin.c \
