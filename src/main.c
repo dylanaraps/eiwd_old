@@ -105,7 +105,7 @@ static int encode_psk(char *ssid) {
     }
 
     crypto_psk_from_passphrase(buf, (uint8_t *) ssid, strlen(ssid), psk);
-    printf("%p\n", psk);
+    printf("%d\n", psk);
 
     return 0;
 }
