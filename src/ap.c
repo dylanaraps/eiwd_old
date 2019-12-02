@@ -62,7 +62,7 @@ struct ap_state {
 	uint16_t last_aid;
 	struct l_queue *sta_states;
 
-	struct l_dbus_message *pending;
+	bool pending;
 	bool started : 1;
 	bool gtk_set : 1;
 };
@@ -1395,8 +1395,7 @@ static struct l_genl_msg *ap_build_cmd_start_ap(struct ap_state *ap)
 	return cmd;
 }
 
-static int ap_start(struct ap_state *ap, const char *ssid, const char *psk,
-		struct l_dbus_message *message)
+static int ap_start(struct ap_state *ap, const char *ssid, const char *psk)
 {
 	struct netdev *netdev = ap->netdev;
 	struct wiphy *wiphy = netdev_get_wiphy(netdev);
@@ -1469,7 +1468,7 @@ static int ap_start(struct ap_state *ap, const char *ssid, const char *psk,
 		goto error;
 	}
 
-	ap->pending = l_dbus_message_ref(message);
+	ap->pending = true;
 
 	return 0;
 
@@ -1508,7 +1507,7 @@ static struct l_genl_msg *ap_build_cmd_stop_ap(struct ap_state *ap)
 	return cmd;
 }
 
-static int ap_stop(struct ap_state *ap, struct l_dbus_message *message)
+static int ap_stop(struct ap_state *ap)
 {
 	struct l_genl_msg *cmd;
 
@@ -1539,7 +1538,7 @@ static int ap_stop(struct ap_state *ap, struct l_dbus_message *message)
 		}
 	}
 
-	ap->pending = l_dbus_message_ref(message);
+	ap->pending = true;
 
 	return 0;
 }
