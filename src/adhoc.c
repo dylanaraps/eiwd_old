@@ -241,13 +241,6 @@ static struct eapol_sm *adhoc_new_sm(struct sta_state *sta, bool authenticator,
 	return sm;
 }
 
-static void adhoc_free(struct adhoc_state *adhoc)
-{
-	adhoc_reset(adhoc);
-	l_genl_family_free(adhoc->nl80211);
-	l_free(adhoc);
-}
-
 static void adhoc_start_rsna(struct sta_state *sta, const uint8_t *gtk_rsc)
 {
 	sta->sm_a = adhoc_new_sm(sta, true, gtk_rsc);
@@ -410,17 +403,6 @@ static void adhoc_del_station(struct adhoc_state *adhoc, const uint8_t *mac)
 	l_debug("lost station "MAC, MAC_STR(mac));
 
 	adhoc_remove_sta(sta);
-}
-
-static void adhoc_station_changed_cb(struct netdev *netdev,
-		const uint8_t *mac, bool added, void *user_data)
-{
-	struct adhoc_state *adhoc = user_data;
-
-	if (added)
-		adhoc_new_station(adhoc, mac);
-	else
-		adhoc_del_station(adhoc, mac);
 }
 
 static void adhoc_add_interface(struct netdev *netdev)

@@ -141,15 +141,6 @@ static void ap_reset(struct ap_state *ap)
 	ap->started = false;
 }
 
-static void ap_free(void *data)
-{
-	struct ap_state *ap = data;
-
-	ap_reset(ap);
-	l_genl_family_free(ap->nl80211);
-	l_free(ap);
-}
-
 static void ap_del_station(struct sta_state *sta, uint16_t reason,
 				bool disassociate)
 {
@@ -1395,89 +1386,6 @@ static struct l_genl_msg *ap_build_cmd_start_ap(struct ap_state *ap)
 	return cmd;
 }
 
-static int ap_start(struct ap_state *ap, const char *ssid, const char *psk)
-{
-	struct netdev *netdev = ap->netdev;
-	struct wiphy *wiphy = netdev_get_wiphy(netdev);
-	struct l_genl_msg *cmd;
-	const struct l_queue_entry *entry;
-	uint32_t id;
-
-	ap->ssid = l_strdup(ssid);
-	/* TODO: Start a Get Survey to decide the channel */
-	ap->channel = 6;
-	/* TODO: Add all ciphers supported by wiphy */
-	ap->ciphers = wiphy_select_cipher(wiphy, 0xffff);
-	ap->group_cipher = wiphy_select_cipher(wiphy, 0xffff);
-	ap->beacon_interval = 100;
-	/* TODO: Use actual supported rates */
-	ap->rates = l_uintset_new(200);
-	l_uintset_put(ap->rates, 2); /* 1 Mbps*/
-	l_uintset_put(ap->rates, 11); /* 5.5 Mbps*/
-	l_uintset_put(ap->rates, 22); /* 11 Mbps*/
-
-	if (crypto_psk_from_passphrase(psk, (uint8_t *) ssid, strlen(ssid),
-					ap->pmk) < 0)
-		goto error;
-
-	ap->frame_watch_ids = l_queue_new();
-
-	id = netdev_frame_watch_add(netdev, 0x0000 |
-			(MPDU_MANAGEMENT_SUBTYPE_ASSOCIATION_REQUEST << 4),
-			NULL, 0, ap_assoc_req_cb, ap);
-	l_queue_push_tail(ap->frame_watch_ids, L_UINT_TO_PTR(id));
-
-	id = netdev_frame_watch_add(netdev, 0x0000 |
-			(MPDU_MANAGEMENT_SUBTYPE_REASSOCIATION_REQUEST << 4),
-			NULL, 0, ap_reassoc_req_cb, ap);
-	l_queue_push_tail(ap->frame_watch_ids, L_UINT_TO_PTR(id));
-
-	id = netdev_frame_watch_add(netdev, 0x0000 |
-				(MPDU_MANAGEMENT_SUBTYPE_PROBE_REQUEST << 4),
-				NULL, 0, ap_probe_req_cb, ap);
-	l_queue_push_tail(ap->frame_watch_ids, L_UINT_TO_PTR(id));
-
-	id = netdev_frame_watch_add(netdev, 0x0000 |
-				(MPDU_MANAGEMENT_SUBTYPE_DISASSOCIATION << 4),
-				NULL, 0, ap_disassoc_cb, ap);
-	l_queue_push_tail(ap->frame_watch_ids, L_UINT_TO_PTR(id));
-
-	id = netdev_frame_watch_add(netdev, 0x0000 |
-				(MPDU_MANAGEMENT_SUBTYPE_AUTHENTICATION << 4),
-				NULL, 0, ap_auth_cb, ap);
-	l_queue_push_tail(ap->frame_watch_ids, L_UINT_TO_PTR(id));
-
-	id = netdev_frame_watch_add(netdev, 0x0000 |
-				(MPDU_MANAGEMENT_SUBTYPE_DEAUTHENTICATION << 4),
-				NULL, 0, ap_deauth_cb, ap);
-	l_queue_push_tail(ap->frame_watch_ids, L_UINT_TO_PTR(id));
-
-	for (entry = l_queue_get_entries(ap->frame_watch_ids); entry;
-			entry = entry->next)
-		if (!L_PTR_TO_UINT(entry->data))
-			goto error;
-
-	cmd = ap_build_cmd_start_ap(ap);
-	if (!cmd)
-		goto error;
-
-	ap->start_stop_cmd_id = l_genl_family_send(ap->nl80211, cmd,
-							ap_start_cb, ap, NULL);
-	if (!ap->start_stop_cmd_id) {
-		l_genl_msg_unref(cmd);
-		goto error;
-	}
-
-	ap->pending = true;
-
-	return 0;
-
-error:
-	ap_reset(ap);
-
-	return -EIO;
-}
-
 static void ap_stop_cb(struct l_genl_msg *msg, void *user_data)
 {
 	struct ap_state *ap = user_data;
@@ -1505,42 +1413,6 @@ static struct l_genl_msg *ap_build_cmd_stop_ap(struct ap_state *ap)
 	l_genl_msg_append_attr(cmd, NL80211_ATTR_IFINDEX, 4, &ifindex);
 
 	return cmd;
-}
-
-static int ap_stop(struct ap_state *ap)
-{
-	struct l_genl_msg *cmd;
-
-	cmd = ap_build_cmd_stop_ap(ap);
-	if (!cmd)
-		return -ENOMEM;
-
-	if (ap->start_stop_cmd_id)
-		l_genl_family_cancel(ap->nl80211, ap->start_stop_cmd_id);
-
-	ap->start_stop_cmd_id = l_genl_family_send(ap->nl80211, cmd, ap_stop_cb,
-							ap, NULL);
-	if (!ap->start_stop_cmd_id) {
-		l_genl_msg_unref(cmd);
-		return -EIO;
-	}
-
-	if (ap->gtk_set) {
-		struct l_genl_msg *msg;
-
-		ap->gtk_set = false;
-
-		msg = ap_build_cmd_del_key(ap);
-		if (!l_genl_family_send(ap->nl80211, msg, ap_gtk_op_cb, NULL,
-					NULL)) {
-			l_genl_msg_unref(msg);
-			l_error("Issuing DEL_KEY failed");
-		}
-	}
-
-	ap->pending = true;
-
-	return 0;
 }
 
 static void ap_add_interface(struct netdev *netdev)
