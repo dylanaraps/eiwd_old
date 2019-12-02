@@ -1419,28 +1419,7 @@ static void known_networks_changed(enum known_networks_event event,
 	}
 }
 
-static void setup_network_interface(struct l_dbus_interface *interface)
-{
-	l_dbus_interface_method(interface, "Connect", 0,
-				network_connect,
-				"", "");
-
-	l_dbus_interface_property(interface, "Name", 0, "s",
-					network_property_get_name, NULL);
-
-	l_dbus_interface_property(interface, "Connected", 0, "b",
-					network_property_is_connected,
-					NULL);
-
-	l_dbus_interface_property(interface, "Device", 0, "o",
-					network_property_get_device, NULL);
-
-	l_dbus_interface_property(interface, "Type", 0, "s",
-					network_property_get_type, NULL);
-
-	l_dbus_interface_property(interface, "KnownNetwork", 0, "o",
-				network_property_get_known_network, NULL);
-}
+static void setup_network_interface(struct l_dbus_interface *interface){}
 
 static int network_init(void)
 {
