@@ -144,9 +144,6 @@ static void ap_reset(struct ap_state *ap)
 		l_uintset_free(ap->rates);
 
 	ap->started = false;
-
-	l_dbus_property_changed(dbus_get_bus(), netdev_get_path(ap->netdev),
-						IWD_AP_INTERFACE, "Started");
 }
 
 static void ap_free(void *data)
@@ -1339,9 +1336,6 @@ static void ap_start_cb(struct l_genl_msg *msg, void *user_data)
 			l_dbus_message_new_method_return(ap->pending));
 
 	ap->started = true;
-
-	l_dbus_property_changed(dbus_get_bus(), netdev_get_path(ap->netdev),
-						IWD_AP_INTERFACE, "Started");
 }
 
 static struct l_genl_msg *ap_build_cmd_start_ap(struct ap_state *ap)
@@ -1646,16 +1640,10 @@ static void ap_add_interface(struct netdev *netdev)
 	ap = l_new(struct ap_state, 1);
 	ap->netdev = netdev;
 	ap->nl80211 = l_genl_family_new(iwd_get_genl(), NL80211_GENL_NAME);
-
-	/* setup ap dbus interface */
-	l_dbus_object_add_interface(dbus_get_bus(),
-			netdev_get_path(netdev), IWD_AP_INTERFACE, ap);
 }
 
 static void ap_remove_interface(struct netdev *netdev)
 {
-	l_dbus_object_remove_interface(dbus_get_bus(),
-			netdev_get_path(netdev), IWD_AP_INTERFACE);
 }
 
 static void ap_netdev_watch(struct netdev *netdev,

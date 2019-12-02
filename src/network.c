@@ -488,9 +488,6 @@ void network_set_info(struct network *network, struct network_info *info)
 		network->info->seen_count--;
 		network->info = NULL;
 	}
-
-	l_dbus_property_changed(dbus_get_bus(), network_get_path(network),
-					IWD_NETWORK_INTERFACE, "KnownNetwork");
 }
 
 static inline bool __bss_is_sae(const struct scan_bss *bss,
@@ -1290,8 +1287,6 @@ bool network_register(struct network *network, const char *path)
 
 static void network_unregister(struct network *network, int reason)
 {
-	struct l_dbus *dbus = dbus_get_bus();
-
 	agent_request_cancel(network->agent_request, reason);
 	network_settings_close(network);
 

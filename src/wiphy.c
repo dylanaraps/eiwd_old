@@ -922,8 +922,6 @@ static int wiphy_get_permanent_addr_from_sysfs(struct wiphy *wiphy)
 
 static void wiphy_register(struct wiphy *wiphy)
 {
-	struct l_dbus *dbus = dbus_get_bus();
-
 	wiphy->soft_rfkill = rfkill_get_soft_state(wiphy->id);
 	wiphy->hard_rfkill = rfkill_get_hard_state(wiphy->id);
 
@@ -984,11 +982,7 @@ void wiphy_update_from_genl(struct wiphy *wiphy, const char *name,
 	l_debug("");
 
 	if (strncmp(wiphy->name, name, sizeof(wiphy->name))) {
-		struct l_dbus *dbus = dbus_get_bus();
-
 		l_strlcpy(wiphy->name, name, sizeof(wiphy->name));
-		l_dbus_property_changed(dbus, wiphy_get_path(wiphy),
-					IWD_WIPHY_INTERFACE, "Name");
 	}
 
 	wiphy_parse_attributes(wiphy, msg);
@@ -1079,7 +1073,6 @@ static void wiphy_rfkill_cb(unsigned int wiphy_id, bool soft, bool hard,
 				void *user_data)
 {
 	struct wiphy *wiphy = wiphy_find(wiphy_id);
-	struct l_dbus *dbus = dbus_get_bus();
 	bool old_powered, new_powered;
 	enum wiphy_state_watch_event event;
 
@@ -1100,9 +1093,6 @@ static void wiphy_rfkill_cb(unsigned int wiphy_id, bool soft, bool hard,
 				WIPHY_STATE_WATCH_EVENT_RFKILLED;
 	WATCHLIST_NOTIFY(&wiphy->state_watches, wiphy_state_watch_func_t,
 				wiphy, event);
-
-	l_dbus_property_changed(dbus, wiphy_get_path(wiphy),
-					IWD_WIPHY_INTERFACE, "Powered");
 }
 
 static bool wiphy_property_get_powered(struct l_dbus *dbus,

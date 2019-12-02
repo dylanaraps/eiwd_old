@@ -288,7 +288,6 @@ static void device_wiphy_state_changed_event(struct wiphy *wiphy,
 static struct device *device_create(struct wiphy *wiphy, struct netdev *netdev)
 {
 	struct device *device;
-	struct l_dbus *dbus = dbus_get_bus();
 	uint32_t ifindex = netdev_get_ifindex(netdev);
 	const uint8_t action_ap_roam_prefix[2] = { 0x0a, 0x07 };
 
@@ -333,10 +332,11 @@ static void device_netdev_notify(struct netdev *netdev,
 					void *user_data)
 {
 	struct device *device;
-	struct l_dbus *dbus = dbus_get_bus();
 	const char *path = netdev_get_path(netdev);
 
-	device = l_dbus_object_get_data(dbus, path, IWD_DEVICE_INTERFACE);
+	/* device = l_dbus_object_get_data(dbus, path, IWD_DEVICE_INTERFACE); */
+    /* TODO: FIX */
+    device = NULL;
 
 	if (!device && event != NETDEV_WATCH_EVENT_NEW)
 		return;

@@ -80,16 +80,6 @@ static void send_request(struct agent *agent, const char *request)
 
 	l_debug("send %s request to %s %s", request, agent->owner,
 							agent->path);
-
-	message = l_dbus_message_new_method_call(dbus_get_bus(),
-							agent->owner,
-							agent->path,
-							IWD_AGENT_INTERFACE,
-							request);
-
-	l_dbus_message_set_arguments(message, "");
-
-	l_dbus_send(dbus_get_bus(), message);
 }
 
 static void send_cancel_request(void *user_data, int reason)
@@ -117,16 +107,6 @@ static void send_cancel_request(void *user_data, int reason)
 
 	l_debug("send a Cancel(%s) to %s %s", reasonstr,
 			agent->owner, agent->path);
-
-	message = l_dbus_message_new_method_call(dbus_get_bus(),
-							agent->owner,
-							agent->path,
-							IWD_AGENT_INTERFACE,
-							"Cancel");
-
-	l_dbus_message_set_arguments(message, "s", reasonstr);
-
-	l_dbus_send(dbus_get_bus(), message);
 }
 
 static void agent_request_free(void *user_data)
@@ -226,13 +206,7 @@ static void agent_free(void *data)
 	if (agent->timeout)
 		l_timeout_remove(agent->timeout);
 
-	if (agent->pending_id)
-		l_dbus_cancel(dbus_get_bus(), agent->pending_id);
-
 	l_queue_destroy(agent->requests, agent_request_free);
-
-	if (agent->disconnect_watch)
-		l_dbus_remove_watch(dbus_get_bus(), agent->disconnect_watch);
 
 	l_free(agent->owner);
 	l_free(agent->path);
@@ -244,8 +218,6 @@ static void agent_send_next_request(struct agent *agent);
 static void request_timeout(struct l_timeout *timeout, void *user_data)
 {
 	struct agent *agent = user_data;
-
-	l_dbus_cancel(dbus_get_bus(), agent->pending_id);
 
 	send_cancel_request(agent, -ETIMEDOUT);
 
@@ -502,8 +474,6 @@ bool agent_request_cancel(unsigned int req_id, int reason)
 	if (!request->message) {
 		send_cancel_request(agent, reason);
 
-		l_dbus_cancel(dbus_get_bus(), agent->pending_id);
-
 		agent->pending_id = 0;
 
 		if (agent->timeout) {
@@ -623,8 +593,6 @@ static bool release_agent(void *data, void *user_data)
 
 static int agent_init(void)
 {
-	struct l_dbus *dbus = dbus_get_bus();
-
 	agents = l_queue_new();
 
 	return 0;

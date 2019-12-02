@@ -1106,7 +1106,6 @@ static void wsc_free(void *userdata)
 
 static void wsc_add_interface(struct netdev *netdev)
 {
-	struct l_dbus *dbus = dbus_get_bus();
 	struct wsc *wsc;
 
 	if (!wiphy_get_max_scan_ie_len(netdev_get_wiphy(netdev))) {
@@ -1122,10 +1121,6 @@ static void wsc_add_interface(struct netdev *netdev)
 
 static void wsc_remove_interface(struct netdev *netdev)
 {
-	struct l_dbus *dbus = dbus_get_bus();
-
-	l_dbus_object_remove_interface(dbus, netdev_get_path(netdev),
-					IWD_WSC_INTERFACE);
 }
 
 static void wsc_netdev_watch(struct netdev *netdev,
