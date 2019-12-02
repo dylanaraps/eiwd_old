@@ -108,30 +108,6 @@ static void ap_sta_free(void *data)
 	l_free(sta);
 }
 
-static void ap_del_station(struct sta_state *sta, uint16_t reason,
-				bool disassociate)
-{
-	struct ap_state *ap = sta->ap;
-
-	netdev_del_station(ap->netdev, sta->addr, reason, disassociate);
-	sta->associated = false;
-	sta->rsna = false;
-
-	if (sta->gtk_query_cmd_id) {
-		l_genl_family_cancel(ap->nl80211, sta->gtk_query_cmd_id);
-		sta->gtk_query_cmd_id = 0;
-	}
-
-	if (sta->sm)
-		eapol_sm_free(sta->sm);
-
-	if (sta->hs)
-		handshake_state_free(sta->hs);
-
-	sta->hs = NULL;
-	sta->sm = NULL;
-}
-
 static void ap_remove_sta(struct sta_state *sta)
 {
 	if (!l_queue_remove(sta->ap->sta_states, sta)) {
@@ -151,39 +127,6 @@ static void ap_new_rsna(struct sta_state *sta)
 	 * TODO: Once new AP interface is implemented this is where a
 	 * new "ConnectedPeer" property will be added.
 	 */
-}
-
-static void ap_set_rsn_info(struct ap_state *ap, struct ie_rsn_info *rsn)
-{
-	memset(rsn, 0, sizeof(*rsn));
-	rsn->akm_suites = IE_RSN_AKM_SUITE_PSK;
-	rsn->pairwise_ciphers = ap->ciphers;
-	rsn->group_cipher = ap->group_cipher;
-}
-
-static void ap_handshake_event(struct handshake_state *hs,
-		enum handshake_event event, void *user_data, ...)
-{
-	struct sta_state *sta = user_data;
-	va_list args;
-
-	va_start(args, user_data);
-
-	switch (event) {
-	case HANDSHAKE_EVENT_COMPLETE:
-		ap_new_rsna(sta);
-		break;
-	case HANDSHAKE_EVENT_FAILED:
-		netdev_handshake_failed(hs, va_arg(args, int));
-		/* fall through */
-	case HANDSHAKE_EVENT_SETTING_KEYS_FAILED:
-		sta->sm = NULL;
-		ap_remove_sta(sta);
-	default:
-		break;
-	}
-
-	va_end(args);
 }
 
 static void ap_add_interface(struct netdev *netdev)
