@@ -77,45 +77,6 @@ struct wsc {
 	bool wsc_association : 1;
 };
 
-static struct l_dbus_message *wsc_error_session_overlap(
-						struct l_dbus_message *msg)
-{
-	return l_dbus_message_new_error(msg,
-					IWD_WSC_INTERFACE ".SessionOverlap",
-					"Multiple sessions detected");
-}
-
-static struct l_dbus_message *wsc_error_no_credentials(
-						struct l_dbus_message *msg)
-{
-	return l_dbus_message_new_error(msg, IWD_WSC_INTERFACE ".NoCredentials",
-					"No usable credentials obtained");
-}
-
-static struct l_dbus_message *wsc_error_not_reachable(
-						struct l_dbus_message *msg)
-{
-	return l_dbus_message_new_error(msg, IWD_WSC_INTERFACE ".NotReachable",
-					"Credentials obtained, but network is "
-					"unreachable");
-}
-
-static struct l_dbus_message *wsc_error_walk_time_expired(
-						struct l_dbus_message *msg)
-{
-	return l_dbus_message_new_error(msg,
-					IWD_WSC_INTERFACE ".WalkTimeExpired",
-					"No APs in PushButton mode found in "
-					"the alloted time");
-}
-
-static struct l_dbus_message *wsc_error_time_expired(struct l_dbus_message *msg)
-{
-	return l_dbus_message_new_error(msg,
-					IWD_WSC_INTERFACE ".TimeExpired",
-					"No APs in PIN mode found in "
-					"the alloted time");
-}
 static void wsc_try_credentials(struct wsc *wsc)
 {
 	unsigned int i;
@@ -164,8 +125,6 @@ static void wsc_try_credentials(struct wsc *wsc)
 		goto done;
 	}
 
-	dbus_pending_reply(&wsc->pending,
-					wsc_error_not_reachable(wsc->pending));
 	station_set_autoconnect(wsc->station, true);
 done:
 	memset(wsc->creds, 0, sizeof(wsc->creds));
@@ -249,8 +208,6 @@ static void wsc_connect_cb(struct netdev *netdev, enum netdev_result result,
 					dbus_error_aborted(wsc->pending));
 		return;
 	case NETDEV_RESULT_HANDSHAKE_FAILED:
-		dbus_pending_reply(&wsc->pending,
-					wsc_error_no_credentials(wsc->pending));
 		break;
 	default:
 		dbus_pending_reply(&wsc->pending,
@@ -597,10 +554,6 @@ static void walk_timeout(struct l_timeout *timeout, void *user_data)
 	struct wsc *wsc = user_data;
 
 	wsc_cancel_scan(wsc);
-
-	if (wsc->pending)
-		dbus_pending_reply(&wsc->pending,
-				wsc_error_walk_time_expired(wsc->pending));
 }
 
 static void pin_timeout(struct l_timeout *timeout, void *user_data)
@@ -608,10 +561,6 @@ static void pin_timeout(struct l_timeout *timeout, void *user_data)
 	struct wsc *wsc = user_data;
 
 	wsc_cancel_scan(wsc);
-
-	if (wsc->pending)
-		dbus_pending_reply(&wsc->pending,
-					wsc_error_time_expired(wsc->pending));
 }
 
 static bool push_button_scan_results(int err, struct l_queue *bss_list,
@@ -730,9 +679,6 @@ static bool push_button_scan_results(int err, struct l_queue *bss_list,
 
 session_overlap:
 	wsc_cancel_scan(wsc);
-	dbus_pending_reply(&wsc->pending,
-				wsc_error_session_overlap(wsc->pending));
-
 	return false;
 }
 
