@@ -116,8 +116,7 @@ static void wsc_try_credentials(struct wsc *wsc)
 				continue;
 		}
 
-		station_connect_network(wsc->station, network, bss,
-								wsc->pending);
+		station_connect_network(wsc->station, network, bss);
 		wsc->pending = NULL;
 
 		goto done;

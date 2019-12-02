@@ -178,7 +178,6 @@ static void agent_send_next_request(struct agent *agent)
 	l_debug("send request to %s %s", agent->owner, agent->path);
 
 	agent->pending_id = NULL;
-	pending->message = NULL;
 
 	return;
 }
