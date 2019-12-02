@@ -1103,8 +1103,6 @@ static bool wiphy_property_get_powered(struct l_dbus *dbus,
 	struct wiphy *wiphy = user_data;
 	bool value = !wiphy->soft_rfkill && !wiphy->hard_rfkill;
 
-	l_dbus_message_builder_append_basic(builder, 'b', &value);
-
 	return true;
 }
 
@@ -1147,8 +1145,6 @@ static bool wiphy_property_get_model(struct l_dbus *dbus,
 	if (!wiphy->model_str)
 		return false;
 
-	l_dbus_message_builder_append_basic(builder, 's', wiphy->model_str);
-
 	return true;
 }
 
@@ -1162,8 +1158,6 @@ static bool wiphy_property_get_vendor(struct l_dbus *dbus,
 	if (!wiphy->vendor_str)
 		return false;
 
-	l_dbus_message_builder_append_basic(builder, 's', wiphy->vendor_str);
-
 	return true;
 }
 
@@ -1176,7 +1170,6 @@ static bool wiphy_property_get_name(struct l_dbus *dbus,
 	char buf[20];
 
 	if (l_utf8_validate(wiphy->name, strlen(wiphy->name), NULL)) {
-		l_dbus_message_builder_append_basic(builder, 's', wiphy->name);
 		return true;
 	}
 
@@ -1187,7 +1180,6 @@ static bool wiphy_property_get_name(struct l_dbus *dbus,
 	 * be safe enough.
 	 */
 	sprintf(buf, "phy%d", wiphy->id);
-	l_dbus_message_builder_append_basic(builder, 's', buf);
 
 	return true;
 }
@@ -1206,12 +1198,6 @@ static bool wiphy_property_get_supported_modes(struct l_dbus *dbus,
 	unsigned int j = 0;
 	char **iftypes = wiphy_get_supported_iftypes(wiphy, WIPHY_MODE_MASK);
 
-	l_dbus_message_builder_enter_array(builder, "s");
-
-	while (iftypes[j])
-		l_dbus_message_builder_append_basic(builder, 's', iftypes[j++]);
-
-	l_dbus_message_builder_leave_array(builder);
 	l_strfreev(iftypes);
 
 	return true;
@@ -1219,18 +1205,6 @@ static bool wiphy_property_get_supported_modes(struct l_dbus *dbus,
 
 static void setup_wiphy_interface(struct l_dbus_interface *interface)
 {
-	l_dbus_interface_property(interface, "Powered", 0, "b",
-					wiphy_property_get_powered,
-					wiphy_property_set_powered);
-	l_dbus_interface_property(interface, "Model", 0, "s",
-					wiphy_property_get_model, NULL);
-	l_dbus_interface_property(interface, "Vendor", 0, "s",
-					wiphy_property_get_vendor, NULL);
-	l_dbus_interface_property(interface, "Name", 0, "s",
-					wiphy_property_get_name, NULL);
-	l_dbus_interface_property(interface, "SupportedModes", 0, "as",
-					wiphy_property_get_supported_modes,
-					NULL);
 }
 
 static int wiphy_init(void)
