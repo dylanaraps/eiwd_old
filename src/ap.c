@@ -42,7 +42,6 @@
 #include "src/util.h"
 #include "src/eapol.h"
 #include "src/handshake.h"
-#include "src/dbus.h"
 #include "src/nl80211util.h"
 
 struct ap_state {

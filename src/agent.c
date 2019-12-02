@@ -27,7 +27,6 @@
 #include <errno.h>
 
 #include <ell/ell.h>
-#include "src/dbus.h"
 #include "src/agent.h"
 #include "src/iwd.h"
 #include "src/module.h"
