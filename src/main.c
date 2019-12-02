@@ -83,7 +83,7 @@ static void iwd_shutdown(void)
 }
 
 static int encode_psk(char *ssid) {
-	unsigned char *psk;
+	uint8_t *psk[32];
 	int i;
 	char *passphrase, buf[64], *pos;
 	size_t len;
@@ -104,7 +104,7 @@ static int encode_psk(char *ssid) {
         pos++;
     }
 
-    crypto_psk_from_passphrase(buf, ssid, strlen(ssid), psk);
+    crypto_psk_from_passphrase(buf, (uint8_t *) ssid, strlen(ssid), psk);
     printf("%s\n", psk);
 
     return 0;
