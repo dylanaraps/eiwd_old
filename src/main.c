@@ -42,6 +42,7 @@
 #include "src/plugin.h"
 #include "src/storage.h"
 #include "src/anqp.h"
+#include "src/crypto.h"
 
 #include "src/backtrace.h"
 
@@ -81,7 +82,7 @@ static void iwd_shutdown(void)
 	timeout = l_timeout_create(1, main_loop_quit, NULL, NULL);
 }
 
-static void encode_psk(ssid) {
+static int encode_psk(ssid) {
 	unsigned char psk[32];
 	int i;
 	char *ssid, *passphrase, buf[64], *pos;
@@ -105,6 +106,8 @@ static void encode_psk(ssid) {
 
     crypto_psk_from_passphrase(buf, (uint8_t *) ssid, strlen(ssid), &psk);
     printf("%s\n", psk);
+
+    return 0;
 }
 
 static void signal_handler(uint32_t signo, void *user_data)
