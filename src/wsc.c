@@ -413,23 +413,7 @@ static void wsc_connect(struct wsc *wsc)
 	l_settings_set_string(settings, "WSC", "EnrolleeMAC",
 		util_address_to_string(netdev_get_address(wsc->netdev)));
 
-	if (!strcmp(l_dbus_message_get_member(wsc->pending), "StartPin")) {
-		const char *pin;
-
-		if (l_dbus_message_get_arguments(wsc->pending, "s", &pin)) {
-			enum wsc_device_password_id dpid;
-
-			if (strlen(pin) == 4 || wsc_pin_is_checksum_valid(pin))
-				dpid = WSC_DEVICE_PASSWORD_ID_DEFAULT;
-			else
-				dpid = WSC_DEVICE_PASSWORD_ID_USER_SPECIFIED;
-
-			l_settings_set_uint(settings, "WSC",
-						"DevicePasswordId", dpid);
-			l_settings_set_string(settings, "WSC",
-						"DevicePassword", pin);
-		}
-	}
+    /* TODO: FIX EAP */
 
 	handshake_state_set_event_func(hs, wsc_handshake_event, wsc);
 	handshake_state_set_8021x_config(hs, settings);
