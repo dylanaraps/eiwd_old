@@ -36,7 +36,6 @@
 #include "src/wiphy.h"
 #include "src/scan.h"
 #include "src/netdev.h"
-#include "src/dbus.h"
 #include "src/station.h"
 
 struct device {

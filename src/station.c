@@ -40,7 +40,6 @@
 #include "src/watchlist.h"
 #include "src/scan.h"
 #include "src/netdev.h"
-#include "src/dbus.h"
 #include "src/wiphy.h"
 #include "src/network.h"
 #include "src/knownnetworks.h"
