@@ -38,14 +38,12 @@ enum agent_request_type {
 	AGENT_REQUEST_TYPE_USER_NAME_PASSWD,
 };
 
-/* Agent dbus request is done from iwd towards the agent */
+/* Agent request is done from iwd towards the agent */
 struct agent_request {
 	enum agent_request_type type;
-	struct l_dbus_message *message;
 	unsigned int id;
 	void *user_data;
 	void *user_callback;
-	struct l_dbus_message *trigger;
 	agent_request_destroy_func_t destroy;
 };
 
@@ -133,10 +131,6 @@ static void agent_finalize_pending(struct agent *agent)
 		break;
 	}
 
-	if (pending->trigger) {
-		pending->trigger = NULL;
-	}
-
 	agent_request_free(pending);
 }
 
@@ -167,21 +161,6 @@ static void request_timeout(struct l_timeout *timeout, void *user_data)
 	agent_finalize_pending(agent);
 
 	agent_send_next_request(agent);
-}
-
-static void agent_receive_reply(struct l_dbus_message *message,
-							void *user_data)
-{
-	struct agent *agent = user_data;
-
-	l_debug("agent %p request id %u", agent, agent->pending_id);
-
-	agent->pending_id = 0;
-
-	agent_finalize_pending(agent);
-
-	if (!agent->pending_id)
-		agent_send_next_request(agent);
 }
 
 static void agent_send_next_request(struct agent *agent)
