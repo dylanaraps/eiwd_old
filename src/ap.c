@@ -85,29 +85,6 @@ struct sta_state {
 
 static uint32_t netdev_watch;
 
-static void ap_sta_free(void *data)
-{
-	struct sta_state *sta = data;
-	struct ap_state *ap = sta->ap;
-
-	l_uintset_free(sta->rates);
-	l_free(sta->assoc_rsne);
-
-	if (sta->assoc_resp_cmd_id)
-		l_genl_family_cancel(ap->nl80211, sta->assoc_resp_cmd_id);
-
-	if (sta->gtk_query_cmd_id)
-		l_genl_family_cancel(ap->nl80211, sta->gtk_query_cmd_id);
-
-	if (sta->sm)
-		eapol_sm_free(sta->sm);
-
-	if (sta->hs)
-		handshake_state_free(sta->hs);
-
-	l_free(sta);
-}
-
 static void ap_add_interface(struct netdev *netdev)
 {
 	struct ap_state *ap;
