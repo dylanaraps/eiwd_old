@@ -223,31 +223,6 @@ static struct eapol_sm *adhoc_new_sm(struct sta_state *sta, bool authenticator,
 	return sm;
 }
 
-static void adhoc_start_rsna(struct sta_state *sta, const uint8_t *gtk_rsc)
-{
-	sta->sm_a = adhoc_new_sm(sta, true, gtk_rsc);
-	if (!sta->sm_a) {
-		l_error("could not create authenticator state machine");
-		goto failed;
-	}
-
-	sta->sm = adhoc_new_sm(sta, false, NULL);
-	if (!sta->sm) {
-		l_error("could not create station state machine");
-		goto failed;
-	}
-
-	eapol_register(sta->sm);
-	eapol_register(sta->sm_a);
-
-	eapol_start(sta->sm);
-
-	return;
-
-failed:
-	adhoc_remove_sta(sta);
-}
-
 static void adhoc_add_interface(struct netdev *netdev)
 {
 	struct adhoc_state *adhoc;

@@ -294,67 +294,6 @@ static void wsc_credential_obtained(struct wsc *wsc,
 	wsc->n_creds += 1;
 }
 
-static void wsc_netdev_event(struct netdev *netdev, enum netdev_event event,
-					void *event_data, void *user_data)
-{
-	struct wsc *wsc = user_data;
-
-	switch (event) {
-	case NETDEV_EVENT_AUTHENTICATING:
-	case NETDEV_EVENT_ASSOCIATING:
-		break;
-	case NETDEV_EVENT_LOST_BEACON:
-		l_debug("Lost beacon");
-		break;
-	case NETDEV_EVENT_DISCONNECT_BY_AP:
-		l_debug("Disconnect by AP");
-		wsc_connect_cb(wsc->netdev, NETDEV_RESULT_HANDSHAKE_FAILED,
-				event_data, wsc);
-		break;
-	case NETDEV_EVENT_RSSI_THRESHOLD_LOW:
-	case NETDEV_EVENT_RSSI_THRESHOLD_HIGH:
-		break;
-	default:
-		l_debug("Unexpected event: %d", event);
-		break;
-	};
-}
-
-static void wsc_handshake_event(struct handshake_state *hs,
-				enum handshake_event event, void *user_data,
-				...)
-{
-	struct wsc *wsc = user_data;
-	va_list args;
-
-	va_start(args, user_data);
-
-	switch (event) {
-	case HANDSHAKE_EVENT_FAILED:
-		netdev_handshake_failed(hs, va_arg(args, int));
-		break;
-	case HANDSHAKE_EVENT_EAP_NOTIFY:
-	{
-		unsigned int eap_event = va_arg(args, unsigned int);
-
-		switch (eap_event) {
-		case EAP_WSC_EVENT_CREDENTIAL_OBTAINED:
-			wsc_credential_obtained(wsc,
-				va_arg(args, const struct wsc_credential *));
-			break;
-		default:
-			l_debug("Got event: %d", eap_event);
-		}
-
-		break;
-	}
-	default:
-		break;
-	}
-
-	va_end(args);
-}
-
 static inline enum wsc_rf_band freq_to_rf_band(uint32_t freq)
 {
 	enum scan_band band;
