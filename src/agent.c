@@ -199,11 +199,7 @@ static void agent_send_next_request(struct agent *agent)
 
 	l_debug("send request to %s %s", agent->owner, agent->path);
 
-	agent->pending_id = l_dbus_send_with_reply(dbus_get_bus(),
-							pending->message,
-							agent_receive_reply,
-							agent, NULL);
-
+	agent->pending_id = NULL
 	pending->message = NULL;
 
 	return;
