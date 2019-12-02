@@ -186,58 +186,6 @@ static void ap_handshake_event(struct handshake_state *hs,
 	va_end(args);
 }
 
-static void ap_start_rsna(struct sta_state *sta, const uint8_t *gtk_rsc)
-{
-	struct ap_state *ap = sta->ap;
-	struct netdev *netdev = sta->ap->netdev;
-	const uint8_t *own_addr = netdev_get_address(netdev);
-	struct scan_bss bss;
-	struct ie_rsn_info rsn;
-	uint8_t bss_rsne[24];
-
-	memset(&bss, 0, sizeof(bss));
-
-	ap_set_rsn_info(ap, &rsn);
-	/*
-	 * TODO: This assumes the length that ap_set_rsn_info() requires. If
-	 * ap_set_rsn_info() changes then this will need to be updated.
-	 */
-	ie_build_rsne(&rsn, bss_rsne);
-
-	/* this handshake setup assumes PSK network */
-	sta->hs = netdev_handshake_state_new(netdev);
-
-	handshake_state_set_event_func(sta->hs, ap_handshake_event, sta);
-	handshake_state_set_ssid(sta->hs, (void *)ap->ssid, strlen(ap->ssid));
-	handshake_state_set_authenticator(sta->hs, true);
-	handshake_state_set_authenticator_ie(sta->hs, bss_rsne);
-	handshake_state_set_supplicant_ie(sta->hs, sta->assoc_rsne);
-	handshake_state_set_pmk(sta->hs, ap->pmk, 32);
-	handshake_state_set_authenticator_address(sta->hs, own_addr);
-	handshake_state_set_supplicant_address(sta->hs, sta->addr);
-
-	if (gtk_rsc)
-		handshake_state_set_gtk(sta->hs, ap->gtk, ap->gtk_index,
-					gtk_rsc);
-
-	sta->sm = eapol_sm_new(sta->hs);
-	if (!sta->sm) {
-		handshake_state_free(sta->hs);
-		sta->hs = NULL;
-		l_error("could not create sm object");
-		goto error;
-	}
-
-	eapol_sm_set_listen_interval(sta->sm, sta->listen_interval);
-
-	eapol_register(sta->sm);
-
-	return;
-
-error:
-	ap_del_station(sta, MMPDU_REASON_CODE_UNSPECIFIED, true);
-}
-
 static void ap_add_interface(struct netdev *netdev)
 {
 	struct ap_state *ap;
