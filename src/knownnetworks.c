@@ -50,6 +50,9 @@ static struct l_dir_watch *storage_dir_watch;
 static struct watchlist known_network_watches;
 static struct l_settings *known_freqs;
 
+/* TODO: Remove this. */
+#define IWD_BASE_PATH "/net/connman/iwd"
+
 static void network_info_free(void *data)
 {
 	struct network_info *network = data;
