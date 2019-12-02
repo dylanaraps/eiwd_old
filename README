@@ -8,6 +8,13 @@ GOALS
 * Implement IPC between clients without DBUS. SOON(TM)
 
 
+TODO
+
+* Remove all DBUS related code from src/*.
+* Remove all DBUS related code from client/*.
+* TBA
+
+
 BUILDING
 
     ./configure \
