@@ -164,7 +164,7 @@ eap_sources = src/eap.c src/eap.h src/eap-private.h \
 				src/mschaputil.h src/mschaputil.c
 
 if DAEMON
-libexec_PROGRAMS += src/iwd
+bin_PROGRAMS += src/iwd
 
 src_iwd_SOURCES = src/main.c linux/nl80211.h src/iwd.h src/missing.h \
 					src/plugin.h src/plugin.c \
@@ -230,7 +230,7 @@ endif
 endif
 
 if WIRED
-libexec_PROGRAMS += wired/ead
+bin_PROGRAMS += wired/ead
 
 wired_ead_SOURCES = wired/main.c wired/ethdev.h wired/ethdev.c \
 				wired/network.h wired/network.c \
