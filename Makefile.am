@@ -611,7 +611,6 @@ endif
 if WIRED
 	$(MKDIR_P) -m 700 $(DESTDIR)$(wired_storagedir)
 endif
-endif
 
 clean-local:
 	-rm -f unit/cert-*.pem unit/cert-*.csr unit/cert-*.srl unit/*-settings.8021x
