@@ -38,28 +38,6 @@
 
 static struct l_dbus *g_dbus = NULL;
 
-const char *dbus_iftype_to_string(uint32_t iftype)
-{
-	switch (iftype) {
-	case NL80211_IFTYPE_ADHOC:
-		return "ad-hoc";
-	case NL80211_IFTYPE_STATION:
-		return "station";
-	case NL80211_IFTYPE_AP:
-		return "ap";
-	case NL80211_IFTYPE_P2P_CLIENT:
-		return "p2p-client";
-	case NL80211_IFTYPE_P2P_GO:
-		return "p2p-go";
-	case NL80211_IFTYPE_P2P_DEVICE:
-		return "p2p-device";
-	default:
-		break;
-	}
-
-	return NULL;
-}
-
 struct l_dbus_message *dbus_error_busy(struct l_dbus_message *msg)
 {
 	return l_dbus_message_new_error(msg, IWD_SERVICE ".InProgress",

@@ -463,6 +463,28 @@ bool wiphy_constrain_freq_set(const struct wiphy *wiphy,
 	return true;
 }
 
+static const char *iftype_to_string(uint32_t iftype)
+{
+	switch (iftype) {
+	case NL80211_IFTYPE_ADHOC:
+		return "ad-hoc";
+	case NL80211_IFTYPE_STATION:
+		return "station";
+	case NL80211_IFTYPE_AP:
+		return "ap";
+	case NL80211_IFTYPE_P2P_CLIENT:
+		return "p2p-client";
+	case NL80211_IFTYPE_P2P_GO:
+		return "p2p-go";
+	case NL80211_IFTYPE_P2P_DEVICE:
+		return "p2p-device";
+	default:
+		break;
+	}
+
+	return NULL;
+}
+
 static char **wiphy_get_supported_iftypes(struct wiphy *wiphy, uint16_t mask)
 {
 	uint16_t supported_mask = wiphy->supported_iftypes & mask;
@@ -476,7 +498,7 @@ static char **wiphy_get_supported_iftypes(struct wiphy *wiphy, uint16_t mask)
 		if (!(supported_mask & (1 << i)))
 			continue;
 
-		str = dbus_iftype_to_string(i + 1);
+		str = iftype_to_string(i + 1);
 		if (str)
 			ret[j++] = l_strdup(str);
 	}
