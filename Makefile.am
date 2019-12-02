@@ -141,7 +141,7 @@ man_MANS =
 endif
 
 manual_pages = src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5 \
-		client/iwctl.1 monitor/iwmon.1 wired/ead.8 tools/hwsim.1
+		monitor/iwmon.1 wired/ead.8 tools/hwsim.1
 
 eap_sources = src/eap.c src/eap.h src/eap-private.h \
 				src/eap-wsc.c src/eap-wsc.h \
@@ -229,30 +229,6 @@ man_MANS += src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5
 endif
 endif
 
-if CLIENT
-bin_PROGRAMS += client/iwctl
-
-client_iwctl_SOURCES = client/main.c \
-			client/adapter.c \
-			client/agent.h client/agent.c \
-			client/agent-manager.h client/agent-manager.c \
-			client/ad-hoc.c \
-			client/ap.c \
-			client/command.h client/command.c \
-			client/dbus-proxy.h client/dbus-proxy.c \
-			client/device.h client/device.c \
-			client/display.h client/display.c \
-			client/known-networks.c \
-			client/network.h client/network.c \
-			client/properties.h client/properties.c \
-			client/wsc.c client/station.c
-client_iwctl_LDADD = $(ell_ldadd) -lreadline
-
-if MANUAL_PAGES
-man_MANS += client/iwctl.1
-endif
-endif
-
 if MONITOR
 bin_PROGRAMS += monitor/iwmon
 
@@ -322,10 +298,6 @@ unit_tests = unit/test-cmac-aes \
 		unit/test-ie unit/test-util unit/test-ssid-security \
 		unit/test-arc4 unit/test-wsc unit/test-eap-mschapv2 \
 		unit/test-eap-sim unit/test-sae unit/test-p2p
-
-if CLIENT
-unit_tests += unit/test-client
-endif
 
 if MAINTAINER_MODE
 noinst_PROGRAMS += $(unit_tests)
@@ -434,19 +406,6 @@ unit_test_eap_mschapv2_SOURCES = src/eap-mschapv2.h src/eap-mschapv2.c \
 				src/mschaputil.h src/mschaputil.c \
 				unit/test-eap-mschapv2.c
 unit_test_eap_mschapv2_LDADD = $(ell_ldadd)
-
-if CLIENT
-unit_test_client_SOURCES = unit/test-client.c \
-				client/adapter.c \
-				client/agent.h client/agent.c \
-				client/agent-manager.h client/agent-manager.c \
-				client/command.h client/command.c \
-				client/dbus-proxy.h client/dbus-proxy.c \
-				client/display.h client/display.c \
-				client/network.h client/network.c \
-				client/properties.h client/properties.c
-unit_test_client_LDADD = $(ell_ldadd) -lreadline
-endif
 
 unit_test_sae_SOURCES = unit/test-sae.c \
 				src/sae.h src/sae.c \
