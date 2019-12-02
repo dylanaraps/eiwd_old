@@ -115,57 +115,6 @@ static void adhoc_remove_sta(struct sta_state *sta)
 	adhoc_sta_free(sta);
 }
 
-static void adhoc_set_rsn_info(struct adhoc_state *adhoc,
-						struct ie_rsn_info *rsn)
-{
-	memset(rsn, 0, sizeof(*rsn));
-	rsn->akm_suites = IE_RSN_AKM_SUITE_PSK;
-	rsn->pairwise_ciphers = adhoc->ciphers;
-	rsn->group_cipher = adhoc->group_cipher;
-}
-
-static void adhoc_handshake_event(struct handshake_state *hs,
-		enum handshake_event event, void *user_data, ...)
-{
-	struct sta_state *sta = user_data;
-
-	switch (event) {
-	case HANDSHAKE_EVENT_FAILED:
-		l_error("handshake failed with STA "MAC, MAC_STR(sta->addr));
-
-		/*
-		 * eapol frees the state machines upon handshake failure. Since
-		 * this is only a failure on one of the handshakes we need to
-		 * set the failing SM to NULL so it will not get double freed
-		 * by adhoc_remove_sta.
-		 */
-		if (sta->hs_auth == hs)
-			sta->sm_a = NULL;
-		else
-			sta->sm = NULL;
-
-		/* fall through */
-	case HANDSHAKE_EVENT_SETTING_KEYS_FAILED:
-		adhoc_remove_sta(sta);
-
-		return;
-	case HANDSHAKE_EVENT_COMPLETE:
-		if (sta->hs_auth == hs)
-			sta->hs_auth_done = true;
-
-		if (sta->hs_sta == hs)
-			sta->hs_sta_done = true;
-
-		if ((sta->hs_auth_done && sta->hs_sta_done) &&
-				!sta->authenticated) {
-			sta->authenticated = true;
-		}
-		break;
-	default:
-		break;
-	}
-}
-
 static void adhoc_add_interface(struct netdev *netdev)
 {
 	struct adhoc_state *adhoc;

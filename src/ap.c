@@ -142,18 +142,6 @@ static void ap_remove_sta(struct sta_state *sta)
 	ap_sta_free(sta);
 }
 
-static void ap_set_sta_cb(struct l_genl_msg *msg, void *user_data)
-{
-	if (l_genl_msg_get_error(msg) < 0)
-		l_error("SET_STATION failed: %i", l_genl_msg_get_error(msg));
-}
-
-static void ap_del_key_cb(struct l_genl_msg *msg, void *user_data)
-{
-	if (l_genl_msg_get_error(msg) < 0)
-		l_debug("DEL_KEY failed: %i", l_genl_msg_get_error(msg));
-}
-
 static void ap_new_rsna(struct sta_state *sta)
 {
 	l_debug("STA "MAC" authenticated", MAC_STR(sta->addr));
@@ -171,34 +159,6 @@ static void ap_set_rsn_info(struct ap_state *ap, struct ie_rsn_info *rsn)
 	rsn->akm_suites = IE_RSN_AKM_SUITE_PSK;
 	rsn->pairwise_ciphers = ap->ciphers;
 	rsn->group_cipher = ap->group_cipher;
-}
-
-static uint32_t ap_send_mgmt_frame(struct ap_state *ap,
-					const struct mmpdu_header *frame,
-					size_t frame_len, bool wait_ack,
-					l_genl_msg_func_t callback,
-					void *user_data)
-{
-	struct l_genl_msg *msg;
-	uint32_t ifindex = netdev_get_ifindex(ap->netdev);
-	uint32_t id;
-	uint32_t ch_freq = scan_channel_to_freq(ap->channel, SCAN_BAND_2_4_GHZ);
-
-	msg = l_genl_msg_new_sized(NL80211_CMD_FRAME, 128 + frame_len);
-
-	l_genl_msg_append_attr(msg, NL80211_ATTR_IFINDEX, 4, &ifindex);
-	l_genl_msg_append_attr(msg, NL80211_ATTR_WIPHY_FREQ, 4, &ch_freq);
-	l_genl_msg_append_attr(msg, NL80211_ATTR_FRAME, frame_len, frame);
-	if (!wait_ack)
-		l_genl_msg_append_attr(msg, NL80211_ATTR_DONT_WAIT_FOR_ACK,
-					0, NULL);
-
-	id = l_genl_family_send(ap->nl80211, msg, callback, user_data, NULL);
-
-	if (!id)
-		l_genl_msg_unref(msg);
-
-	return id;
 }
 
 static void ap_handshake_event(struct handshake_state *hs,
@@ -425,48 +385,6 @@ static void ap_associate_sta_cb(struct l_genl_msg *msg, void *user_data)
 
 error:
 	ap_del_station(sta, MMPDU_REASON_CODE_UNSPECIFIED, true);
-}
-
-static void ap_associate_sta(struct ap_state *ap, struct sta_state *sta)
-{
-	struct l_genl_msg *msg;
-	uint32_t ifindex = netdev_get_ifindex(ap->netdev);
-
-	uint8_t rates[256];
-	uint32_t r, minr, maxr, count = 0;
-	uint16_t capability = l_get_le16(&sta->capability);
-
-	if (sta->associated)
-		msg = nl80211_build_set_station_associated(ifindex, sta->addr);
-	else
-		msg = ap_build_cmd_new_station(sta);
-
-	sta->associated = true;
-	sta->rsna = false;
-
-	minr = l_uintset_find_min(sta->rates);
-	maxr = l_uintset_find_max(sta->rates);
-
-	for (r = minr; r <= maxr; r++)
-		if (l_uintset_contains(sta->rates, r))
-			rates[count++] = r;
-
-	l_genl_msg_append_attr(msg, NL80211_ATTR_STA_AID, 2, &sta->aid);
-	l_genl_msg_append_attr(msg, NL80211_ATTR_STA_SUPPORTED_RATES,
-				count, &rates);
-	l_genl_msg_append_attr(msg, NL80211_ATTR_STA_LISTEN_INTERVAL, 2,
-				&sta->listen_interval);
-	l_genl_msg_append_attr(msg, NL80211_ATTR_STA_CAPABILITY, 2,
-				&capability);
-
-	if (!l_genl_family_send(ap->nl80211, msg, ap_associate_sta_cb,
-								sta, NULL)) {
-		l_genl_msg_unref(msg);
-		if (l_genl_msg_get_command(msg) == NL80211_CMD_NEW_STATION)
-			l_error("Issuing NEW_STATION failed");
-		else
-			l_error("Issuing SET_STATION failed");
-	}
 }
 
 static void ap_add_interface(struct netdev *netdev)
