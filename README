@@ -16,8 +16,7 @@ I am currently in "move fast and possibly break things" mode. Baby steps.
 TODO
 
 * Set up CI and build/test each commit automatically.
-* Remove all DBUS related code from src/*.
-* Remove all DBUS related code from client/*.
+* Remove all DBUS related code from src/*. DONE
 * TBA
 
 
