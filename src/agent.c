@@ -110,59 +110,10 @@ static void agent_request_free(void *user_data)
 {
 	struct agent_request *request = user_data;
 
-	l_dbus_message_unref(request->message);
-
-	if (request->trigger)
-		dbus_pending_reply(&request->trigger,
-					dbus_error_aborted(request->trigger));
-
 	if (request->destroy)
 		request->destroy(request->user_data);
 
 	l_free(request);
-}
-
-static void passphrase_reply(struct l_dbus_message *reply,
-					struct agent_request *request)
-{
-	const char *error, *text;
-	char *passphrase = NULL;
-	enum agent_result result = AGENT_RESULT_FAILED;
-	agent_request_passphrase_func_t user_callback = request->user_callback;
-
-	if (l_dbus_message_get_error(reply, &error, &text))
-		goto done;
-
-	if (!l_dbus_message_get_arguments(reply, "s", &passphrase))
-		goto done;
-
-	result = AGENT_RESULT_OK;
-
-done:
-	user_callback(result, passphrase, request->trigger, request->user_data);
-}
-
-static void user_name_passwd_reply(struct l_dbus_message *reply,
-					struct agent_request *request)
-{
-	const char *error, *text;
-	char *username = NULL;
-	char *passwd = NULL;
-	enum agent_result result = AGENT_RESULT_FAILED;
-	agent_request_user_name_passwd_func_t user_callback =
-		request->user_callback;
-
-	if (l_dbus_message_get_error(reply, &error, &text))
-		goto done;
-
-	if (!l_dbus_message_get_arguments(reply, "ss", &username, &passwd))
-		goto done;
-
-	result = AGENT_RESULT_OK;
-
-done:
-	user_callback(result, username, passwd,
-			request->trigger, request->user_data);
 }
 
 static void agent_finalize_pending(struct agent *agent,
@@ -179,15 +130,12 @@ static void agent_finalize_pending(struct agent *agent,
 
 	switch (pending->type) {
 	case AGENT_REQUEST_TYPE_PASSPHRASE:
-		passphrase_reply(reply, pending);
 		break;
 	case AGENT_REQUEST_TYPE_USER_NAME_PASSWD:
-		user_name_passwd_reply(reply, pending);
 		break;
 	}
 
 	if (pending->trigger) {
-		l_dbus_message_unref(pending->trigger);
 		pending->trigger = NULL;
 	}
 
@@ -232,7 +180,7 @@ static void agent_receive_reply(struct l_dbus_message *message,
 
 	agent->pending_id = 0;
 
-	agent_finalize_pending(agent, message);
+	agent_finalize_pending(agent, NULL);
 
 	if (!agent->pending_id)
 		agent_send_next_request(agent);
@@ -262,36 +210,6 @@ static void agent_send_next_request(struct agent *agent)
 	return;
 }
 
-static unsigned int agent_queue_request(struct agent *agent,
-					enum agent_request_type type,
-					struct l_dbus_message *message,
-					int timeout, void *callback,
-					struct l_dbus_message *trigger,
-					void *user_data,
-					agent_request_destroy_func_t destroy)
-{
-	struct agent_request *request;
-
-	request = l_new(struct agent_request, 1);
-
-	request->type = type;
-	request->message = message;
-	request->id = ++next_request_id;
-	request->user_data = user_data;
-	request->user_callback = callback;
-	request->trigger = l_dbus_message_ref(trigger);
-	request->destroy = destroy;
-
-	agent->timeout_secs = timeout;
-
-	l_queue_push_tail(agent->requests, request);
-
-	if (l_queue_length(agent->requests) == 1)
-		agent_send_next_request(agent);
-
-	return request->id;
-}
-
 static struct agent *agent_lookup(const char *owner)
 {
 	const struct l_queue_entry *entry;
@@ -319,127 +237,6 @@ static struct agent *get_agent(const char *owner)
 		return agent;
 
 	return l_queue_peek_head(agents);
-}
-
-/**
- * agent_request_passphrase:
- * @path: object path related to this request (like network object path)
- * @callback: user callback called when the request is ready
- * @trigger: Message associated with (e.g. that triggered) this request
- * @user_data: user defined data
- * @destroy: callback to release @user_data when this request finishes
- *
- * Called when a passphrase information is needed from the user. Returns an
- * id that can be used to cancel the request.
- *
- * If @trigger is not NULL, then a reference is taken automatically.  If
- * agent_cancel_request is called subsequently, a dbus_aborted error is
- * automatically generated for @trigger.  Otherwise, after @callback is
- * called, the reference to @trigger is dropped.  It is assumed that the
- * caller will take ownership of @trigger in the callback if needed.
- */
-unsigned int agent_request_passphrase(const char *path,
-				agent_request_passphrase_func_t callback,
-				struct l_dbus_message *trigger,
-				void *user_data,
-				agent_request_destroy_func_t destroy)
-{
-	struct agent *agent = get_agent(l_dbus_message_get_sender(trigger));
-	struct l_dbus_message *message;
-
-	if (!agent || !callback)
-		return 0;
-
-	l_debug("agent %p owner %s path %s", agent, agent->owner, agent->path);
-
-	message = l_dbus_message_new_method_call(dbus_get_bus(),
-							agent->owner,
-							agent->path,
-							IWD_AGENT_INTERFACE,
-							"RequestPassphrase");
-
-	l_dbus_message_set_arguments(message, "o", path);
-
-	return agent_queue_request(agent, AGENT_REQUEST_TYPE_PASSPHRASE,
-					message, agent_timeout_input_request(),
-					callback, trigger, user_data, destroy);
-}
-
-unsigned int agent_request_pkey_passphrase(const char *path,
-				agent_request_passphrase_func_t callback,
-				struct l_dbus_message *trigger,
-				void *user_data,
-				agent_request_destroy_func_t destroy)
-{
-	struct agent *agent = get_agent(l_dbus_message_get_sender(trigger));
-	struct l_dbus_message *message;
-
-	if (!agent || !callback)
-		return 0;
-
-	l_debug("agent %p owner %s path %s", agent, agent->owner, agent->path);
-
-	message = l_dbus_message_new_method_call(dbus_get_bus(),
-						agent->owner, agent->path,
-						IWD_AGENT_INTERFACE,
-						"RequestPrivateKeyPassphrase");
-
-	l_dbus_message_set_arguments(message, "o", path);
-
-	return agent_queue_request(agent, AGENT_REQUEST_TYPE_PASSPHRASE,
-					message, agent_timeout_input_request(),
-					callback, trigger, user_data, destroy);
-}
-
-unsigned int agent_request_user_name_password(const char *path,
-				agent_request_user_name_passwd_func_t callback,
-				struct l_dbus_message *trigger,
-				void *user_data,
-				agent_request_destroy_func_t destroy)
-{
-	struct agent *agent = get_agent(l_dbus_message_get_sender(trigger));
-	struct l_dbus_message *message;
-
-	if (!agent || !callback)
-		return 0;
-
-	l_debug("agent %p owner %s path %s", agent, agent->owner, agent->path);
-
-	message = l_dbus_message_new_method_call(dbus_get_bus(),
-						agent->owner, agent->path,
-						IWD_AGENT_INTERFACE,
-						"RequestUserNameAndPassword");
-
-	l_dbus_message_set_arguments(message, "o", path);
-
-	return agent_queue_request(agent, AGENT_REQUEST_TYPE_USER_NAME_PASSWD,
-					message, agent_timeout_input_request(),
-					callback, trigger, user_data, destroy);
-}
-
-unsigned int agent_request_user_password(const char *path, const char *user,
-				agent_request_passphrase_func_t callback,
-				struct l_dbus_message *trigger, void *user_data,
-				agent_request_destroy_func_t destroy)
-{
-	struct agent *agent = get_agent(l_dbus_message_get_sender(trigger));
-	struct l_dbus_message *message;
-
-	if (!agent || !callback)
-		return 0;
-
-	l_debug("agent %p owner %s path %s", agent, agent->owner, agent->path);
-
-	message = l_dbus_message_new_method_call(dbus_get_bus(),
-						agent->owner, agent->path,
-						IWD_AGENT_INTERFACE,
-						"RequestUserPassword");
-
-	l_dbus_message_set_arguments(message, "os", path, user ?: "");
-
-	return agent_queue_request(agent, AGENT_REQUEST_TYPE_PASSPHRASE,
-					message, agent_timeout_input_request(),
-					callback, trigger, user_data, destroy);
 }
 
 static bool find_request(const void *a, const void *b)
@@ -484,97 +281,6 @@ bool agent_request_cancel(unsigned int req_id, int reason)
 	agent_request_free(request);
 
 	return true;
-}
-
-static void agent_disconnect(struct l_dbus *dbus, void *user_data)
-{
-	struct agent *agent = user_data;
-
-	l_debug("agent %s disconnected", agent->owner);
-
-	l_queue_remove(agents, agent);
-
-	l_idle_oneshot(agent_free, agent, NULL);
-}
-
-static struct agent *agent_create(struct l_dbus *dbus, const char *name,
-							const char *path)
-{
-	struct agent *agent;
-
-	agent = l_new(struct agent, 1);
-
-	agent->owner = l_strdup(name);
-	agent->path = l_strdup(path);
-	agent->requests = l_queue_new();
-	agent->disconnect_watch = l_dbus_add_disconnect_watch(dbus, name,
-							agent_disconnect,
-							agent, NULL);
-	return agent;
-}
-
-static struct l_dbus_message *agent_register(struct l_dbus *dbus,
-						struct l_dbus_message *message,
-						void *user_data)
-{
-	struct agent *agent = agent_lookup(l_dbus_message_get_sender(message));
-	struct l_dbus_message *reply;
-	const char *path;
-
-	if (agent)
-		return dbus_error_already_exists(message);
-
-	l_debug("agent register called");
-
-	if (!l_dbus_message_get_arguments(message, "o", &path))
-		return dbus_error_invalid_args(message);
-
-	agent = agent_create(dbus, l_dbus_message_get_sender(message), path);
-	if (!agent)
-		return dbus_error_failed(message);
-
-	l_queue_push_tail(agents, agent);
-
-	l_debug("agent %s path %s", agent->owner, agent->path);
-
-	reply = l_dbus_message_new_method_return(message);
-
-	l_dbus_message_set_arguments(reply, "");
-
-	return reply;
-}
-
-static struct l_dbus_message *agent_unregister(struct l_dbus *dbus,
-						struct l_dbus_message *message,
-						void *user_data)
-{
-	struct agent *agent = agent_lookup(l_dbus_message_get_sender(message));
-	struct l_dbus_message *reply;
-
-	l_debug("agent unregister");
-
-	if (!agent)
-		return dbus_error_not_found(message);
-
-	l_queue_remove(agents, agent);
-
-	agent_free(agent);
-
-	reply = l_dbus_message_new_method_return(message);
-
-	l_dbus_message_set_arguments(reply, "");
-
-	return reply;
-}
-
-static void setup_agent_interface(struct l_dbus_interface *interface)
-{
-	l_dbus_interface_method(interface, "RegisterAgent", 0,
-				agent_register,
-				"", "o", "path");
-	l_dbus_interface_method(interface, "UnregisterAgent", 0,
-				agent_unregister,
-				"", "o", "path");
 }
 
 static bool release_agent(void *data, void *user_data)
