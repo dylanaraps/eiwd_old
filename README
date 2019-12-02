@@ -10,6 +10,7 @@ GOALS
 
 TODO
 
+* Set up CI and build/test each commit automatically.
 * Remove all DBUS related code from src/*.
 * Remove all DBUS related code from client/*.
 * TBA
