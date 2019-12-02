@@ -168,25 +168,6 @@ static void agent_send_next_request(struct agent *agent)
 	return;
 }
 
-static struct agent *agent_lookup(const char *owner)
-{
-	const struct l_queue_entry *entry;
-
-	if (!owner)
-		return NULL;
-
-	for (entry = l_queue_get_entries(agents); entry; entry = entry->next) {
-		struct agent *agent = entry->data;
-
-		if (strcmp(agent->owner, owner))
-			continue;
-
-		return agent;
-	}
-
-	return NULL;
-}
-
 static bool find_request(const void *a, const void *b)
 {
 	const struct agent_request *request = a;

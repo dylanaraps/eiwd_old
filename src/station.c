@@ -216,13 +216,6 @@ static void bss_free(void *data)
 	scan_bss_free(bss);
 }
 
-static void network_free(void *data)
-{
-	struct network *network = data;
-
-	network_remove(network, -ESHUTDOWN);
-}
-
 static bool process_network(const void *key, void *data, void *user_data)
 {
 	struct network *network = data;
@@ -2401,15 +2394,6 @@ static void station_rssi_level_changed(struct station *station,
 					uint8_t level_idx)
 {
     return;
-}
-
-static void signal_agent_free(void *data)
-{
-	struct signal_agent *agent = data;
-
-	l_free(agent->owner);
-	l_free(agent->path);
-	l_free(agent);
 }
 
 void station_foreach(station_foreach_func_t func, void *user_data)

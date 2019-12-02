@@ -498,16 +498,6 @@ static inline bool __bss_is_sae(const struct scan_bss *bss,
 	return false;
 }
 
-static bool bss_is_sae(const struct scan_bss *bss)
-{
-	struct ie_rsn_info rsn;
-
-	memset(&rsn, 0, sizeof(rsn));
-	scan_bss_get_rsn_info(bss, &rsn);
-
-	return __bss_is_sae(bss, &rsn);
-}
-
 int network_autoconnect(struct network *network, struct scan_bss *bss)
 {
 	struct station *station = network->station;
@@ -738,13 +728,6 @@ struct scan_bss *network_bss_select(struct network *network,
 		return candidate;
 
 	return NULL;
-}
-
-static bool eap_secret_info_match_local(const void *a, const void *b)
-{
-	const struct eap_secret_info *info = a;
-
-	return info->type == EAP_SECRET_LOCAL_PKEY_PASSPHRASE;
 }
 
 void network_connect_new_hidden_network(struct network *network)

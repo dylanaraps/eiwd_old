@@ -107,18 +107,6 @@ static struct device *device_create(struct wiphy *wiphy, struct netdev *netdev)
 	return device;
 }
 
-static void device_free(struct device *device)
-{
-	l_debug("");
-
-	scan_wdev_remove(netdev_get_wdev_id(device->netdev));
-
-	netdev_frame_watch_remove(device->netdev, device->ap_roam_watch);
-	wiphy_state_watch_remove(device->wiphy, device->wiphy_rfkill_watch);
-
-	l_free(device);
-}
-
 static void device_netdev_notify(struct netdev *netdev,
 					enum netdev_watch_event event,
 					void *user_data)
