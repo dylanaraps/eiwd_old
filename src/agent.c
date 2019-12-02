@@ -177,7 +177,7 @@ static void agent_send_next_request(struct agent *agent)
 
 	l_debug("send request to %s %s", agent->owner, agent->path);
 
-	agent->pending_id = NULL;
+	agent->pending_id = 0;
 
 	return;
 }
@@ -237,19 +237,16 @@ bool agent_request_cancel(unsigned int req_id, int reason)
 	if (!request)
 		return false;
 
-	if (!request->message) {
-		send_cancel_request(agent, reason);
+    send_cancel_request(agent, reason);
 
-		agent->pending_id = 0;
+    agent->pending_id = 0;
 
-		if (agent->timeout) {
-			l_timeout_remove(agent->timeout);
-			agent->timeout = NULL;
-		}
+    if (agent->timeout) {
+        l_timeout_remove(agent->timeout);
+        agent->timeout = NULL;
+    }
 
-		agent_send_next_request(agent);
-	}
-
+    agent_send_next_request(agent);
 	agent_request_free(request);
 
 	return true;
