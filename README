@@ -19,9 +19,7 @@ BUILDING
 
     ./configure \
         --prefix=/usr \
-        --localstatedir=/var \
-        --disable-dbus-policy \
-        --disable-systemd-service
+        --localstatedir=/var
 
     make
     make install
