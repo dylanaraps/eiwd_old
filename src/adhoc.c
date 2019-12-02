@@ -99,22 +99,6 @@ end:
 	l_free(sta);
 }
 
-static void adhoc_remove_sta(struct sta_state *sta)
-{
-	if (!l_queue_remove(sta->adhoc->sta_states, sta)) {
-		l_error("station %p was not found", sta);
-		return;
-	}
-
-	if (sta->gtk_query_cmd_id) {
-		l_genl_family_cancel(sta->adhoc->nl80211,
-						sta->gtk_query_cmd_id);
-		sta->gtk_query_cmd_id = 0;
-	}
-
-	adhoc_sta_free(sta);
-}
-
 static void adhoc_add_interface(struct netdev *netdev)
 {
 	struct adhoc_state *adhoc;

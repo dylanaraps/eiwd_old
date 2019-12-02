@@ -256,32 +256,6 @@ error:
 	ap_del_station(sta, MMPDU_REASON_CODE_UNSPECIFIED, true);
 }
 
-static struct l_genl_msg *ap_build_cmd_new_station(struct sta_state *sta)
-{
-	struct l_genl_msg *msg;
-	uint32_t ifindex = netdev_get_ifindex(sta->ap->netdev);
-	/*
-	 * This should hopefully work both with and without
-	 * NL80211_FEATURE_FULL_AP_CLIENT_STATE.
-	 */
-	struct nl80211_sta_flag_update flags = {
-		.mask = (1 << NL80211_STA_FLAG_AUTHENTICATED) |
-			(1 << NL80211_STA_FLAG_ASSOCIATED) |
-			(1 << NL80211_STA_FLAG_AUTHORIZED) |
-			(1 << NL80211_STA_FLAG_MFP),
-		.set = (1 << NL80211_STA_FLAG_AUTHENTICATED) |
-			(1 << NL80211_STA_FLAG_ASSOCIATED),
-	};
-
-	msg = l_genl_msg_new_sized(NL80211_CMD_NEW_STATION, 300);
-
-	l_genl_msg_append_attr(msg, NL80211_ATTR_IFINDEX, 4, &ifindex);
-	l_genl_msg_append_attr(msg, NL80211_ATTR_MAC, 6, sta->addr);
-	l_genl_msg_append_attr(msg, NL80211_ATTR_STA_FLAGS2, 8, &flags);
-
-	return msg;
-}
-
 static void ap_gtk_op_cb(struct l_genl_msg *msg, void *user_data)
 {
 	if (l_genl_msg_get_error(msg) < 0) {
@@ -294,97 +268,6 @@ static void ap_gtk_op_cb(struct l_genl_msg *msg, void *user_data)
 		l_error("%s failed for the GTK: %i",
 			cmd_name, l_genl_msg_get_error(msg));
 	}
-}
-
-static void ap_associate_sta_cb(struct l_genl_msg *msg, void *user_data)
-{
-	struct sta_state *sta = user_data;
-	struct ap_state *ap = sta->ap;
-
-	if (l_genl_msg_get_error(msg) < 0) {
-		l_error("NEW_STATION/SET_STATION failed: %i",
-			l_genl_msg_get_error(msg));
-		return;
-	}
-
-	/*
-	 * Set up the group key.  If this is our first STA then we have
-	 * to add the new GTK to the kernel.  In theory we should be
-	 * able to supply our own RSC (e.g. generated randomly) and use it
-	 * immediately for our 4-Way Handshake without querying the kernel.
-	 * However NL80211_CMD_NEW_KEY only lets us set the receive RSC --
-	 * the Rx PN for CCMP and the Rx IV for TKIP -- and the
-	 * transmit RSC always starts as all zeros.  There's effectively
-	 * no way to set the Tx RSC or query the Rx RSC through nl80211.
-	 * So we query the Tx RSC in both scenarios just in case some
-	 * driver/hardware uses a different initial Tx RSC.
-	 *
-	 * Optimally we would get called back by the EAPoL state machine
-	 * only when building the step 3 of 4 message to query the RSC as
-	 * late as possible but that would complicate EAPoL.
-	 */
-	if (ap->group_cipher != IE_RSN_CIPHER_SUITE_NO_GROUP_TRAFFIC &&
-			!ap->gtk_set) {
-		enum crypto_cipher group_cipher =
-			ie_rsn_cipher_suite_to_cipher(ap->group_cipher);
-		int gtk_len = crypto_cipher_key_len(group_cipher);
-
-		/*
-		 * Generate our GTK.  Not following the example derivation
-		 * method in 802.11-2016 section 12.7.1.4 because a simple
-		 * l_getrandom is just as good.
-		 */
-		l_getrandom(ap->gtk, gtk_len);
-		ap->gtk_index = 1;
-
-		msg = nl80211_build_new_key_group(
-						netdev_get_ifindex(ap->netdev),
-						group_cipher, ap->gtk_index,
-						ap->gtk, gtk_len, NULL,
-						0, NULL);
-
-		if (!l_genl_family_send(ap->nl80211, msg, ap_gtk_op_cb, NULL,
-					NULL)) {
-			l_genl_msg_unref(msg);
-			l_error("Issuing NEW_KEY failed");
-			goto error;
-		}
-
-		msg = nl80211_build_set_key(netdev_get_ifindex(ap->netdev),
-						ap->gtk_index);
-		if (!l_genl_family_send(ap->nl80211, msg, ap_gtk_op_cb, NULL,
-					NULL)) {
-			l_genl_msg_unref(msg);
-			l_error("Issuing SET_KEY failed");
-			goto error;
-		}
-
-		/*
-		 * Set the flag now because any new associating STA will
-		 * just use NL80211_CMD_GET_KEY from now.
-		 */
-		ap->gtk_set = true;
-	}
-
-	if (ap->group_cipher == IE_RSN_CIPHER_SUITE_NO_GROUP_TRAFFIC)
-		ap_start_rsna(sta, NULL);
-	else {
-		msg = nl80211_build_get_key(netdev_get_ifindex(ap->netdev),
-					ap->gtk_index);
-		sta->gtk_query_cmd_id = l_genl_family_send(ap->nl80211, msg,
-								ap_gtk_query_cb,
-								sta, NULL);
-		if (!sta->gtk_query_cmd_id) {
-			l_genl_msg_unref(msg);
-			l_error("Issuing GET_KEY failed");
-			goto error;
-		}
-	}
-
-	return;
-
-error:
-	ap_del_station(sta, MMPDU_REASON_CODE_UNSPECIFIED, true);
 }
 
 static void ap_add_interface(struct netdev *netdev)
