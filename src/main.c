@@ -55,6 +55,7 @@ static const char *nophys;
 static const char *plugins;
 static const char *noplugins;
 static const char *debugopt;
+static const char *ssid;
 static bool terminating;
 static bool nl80211_complete;
 
@@ -78,6 +79,32 @@ static void iwd_shutdown(void)
 	netdev_shutdown();
 
 	timeout = l_timeout_create(1, main_loop_quit, NULL, NULL);
+}
+
+static void encode_psk(ssid) {
+	unsigned char psk[32];
+	int i;
+	char *ssid, *passphrase, buf[64], *pos;
+	size_t len;
+
+    if (fgets(buf, sizeof(buf), stdin) == NULL) {
+        printf("Failed to read passphrase\n");
+        return 1;
+    }
+
+    buf[sizeof(buf) - 1] = '\0';
+
+    pos = buf;
+    while (*pos != '\0') {
+        if (*pos == '\r' || *pos == '\n') {
+            *pos = '\0';
+            break;
+        }
+        pos++;
+    }
+
+    crypto_psk_from_passphrase(buf, (uint8_t *) ssid, strlen(ssid), &psk);
+    printf("%s\n", psk);
 }
 
 static void signal_handler(uint32_t signo, void *user_data)
@@ -333,7 +360,7 @@ int main(int argc, char *argv[])
 	for (;;) {
 		int opt;
 
-		opt = getopt_long(argc, argv, "i:I:p:P:d::vh",
+		opt = getopt_long(argc, argv, "i:I:p:P:S:d::vh",
 							main_options, NULL);
 		if (opt < 0)
 			break;
@@ -365,6 +392,9 @@ int main(int argc, char *argv[])
 			else
 				debugopt = "*";
 			break;
+        case 'S':
+            encode_psk(optarg);
+            return EXIT_SUCCESS;
 		case 'v':
 			printf("%s\n", VERSION);
 			return EXIT_SUCCESS;
