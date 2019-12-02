@@ -2188,22 +2188,6 @@ static bool station_retry_with_status(struct station *station,
 static void station_connect_dbus_reply(struct station *station,
 					enum netdev_result result)
 {
-	struct l_dbus_message *reply;
-
-	switch (result) {
-	case NETDEV_RESULT_ABORTED:
-		reply = dbus_error_aborted(station->connect_pending);
-		break;
-	case NETDEV_RESULT_OK:
-		reply = l_dbus_message_new_method_return(
-					station->connect_pending);
-		break;
-	default:
-		reply = dbus_error_failed(station->connect_pending);
-		break;
-	}
-
-	dbus_pending_reply(&station->connect_pending, reply);
 }
 
 static void station_connect_cb(struct netdev *netdev, enum netdev_result result,
@@ -2233,9 +2217,6 @@ static void station_connect_cb(struct netdev *netdev, enum netdev_result result,
 	default:
 		break;
 	}
-
-	if (station->connect_pending)
-		station_connect_dbus_reply(station, result);
 
 	if (result != NETDEV_RESULT_OK) {
 		if (result != NETDEV_RESULT_ABORTED) {
@@ -2388,12 +2369,6 @@ static bool station_hidden_network_scan_results(int err,
 	station->connect_pending = NULL;
 
 	if (err) {
-		dbus_pending_reply(&msg, dbus_error_failed(msg));
-		return false;
-	}
-
-	if (!l_dbus_message_get_arguments(msg, "s", &ssid)) {
-		dbus_pending_reply(&msg, dbus_error_invalid_args(msg));
 		return false;
 	}
 
@@ -2420,12 +2395,10 @@ next:
 	network_open = station_network_find(station, ssid, SECURITY_NONE);
 
 	if (!network_psk && !network_open) {
-		dbus_pending_reply(&msg, dbus_error_not_found(msg));
 		return true;
 	}
 
 	if (network_psk && network_open) {
-		dbus_pending_reply(&msg, dbus_error_service_set_overlap(msg));
 		return true;
 	}
 
@@ -2857,23 +2830,10 @@ static struct l_dbus_message *station_dbus_signal_agent_unregister(
 
 	l_debug("signal agent unregister");
 
-	if (!l_dbus_message_get_arguments(message, "o", &path))
-		return dbus_error_invalid_args(message);
-
-	if (strcmp(station->signal_agent->path, path))
-		return dbus_error_not_found(message);
-
-	sender = l_dbus_message_get_sender(message);
-
-	if (strcmp(station->signal_agent->owner, sender))
-		return dbus_error_not_found(message);
-
 	signal_agent_free(station->signal_agent);
 	station->signal_agent = NULL;
 
 	netdev_set_rssi_report_levels(station->netdev, NULL, 0);
-
-	return l_dbus_message_new_method_return(message);
 }
 
 static bool station_property_get_connected_network(struct l_dbus *dbus,
@@ -2886,9 +2846,6 @@ static bool station_property_get_connected_network(struct l_dbus *dbus,
 	if (!station->connected_network)
 		return false;
 
-	l_dbus_message_builder_append_basic(builder, 'o',
-				network_get_path(station->connected_network));
-
 	return true;
 }
 
@@ -2899,8 +2856,6 @@ static bool station_property_get_scanning(struct l_dbus *dbus,
 {
 	struct station *station = user_data;
 	bool scanning = station->scanning;
-
-	l_dbus_message_builder_append_basic(builder, 'b', &scanning);
 
 	return true;
 }
@@ -2919,7 +2874,6 @@ static bool station_property_get_state(struct l_dbus *dbus,
 	else
 		statestr = station_state_to_string(station->state);
 
-	l_dbus_message_builder_append_basic(builder, 's', statestr);
 	return true;
 }
 
