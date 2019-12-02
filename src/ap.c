@@ -116,31 +116,6 @@ static void ap_frame_watch_remove(void *data, void *user_data)
 		netdev_frame_watch_remove(netdev, L_PTR_TO_UINT(data));
 }
 
-static void ap_reset(struct ap_state *ap)
-{
-	struct netdev *netdev = ap->netdev;
-
-	if (!ap->started)
-		return;
-
-	l_free(ap->ssid);
-
-	memset(ap->pmk, 0, sizeof(ap->pmk));
-
-	l_queue_foreach(ap->frame_watch_ids, ap_frame_watch_remove, netdev);
-	l_queue_destroy(ap->frame_watch_ids, NULL);
-
-	if (ap->start_stop_cmd_id)
-		l_genl_family_cancel(ap->nl80211, ap->start_stop_cmd_id);
-
-	l_queue_destroy(ap->sta_states, ap_sta_free);
-
-	if (ap->rates)
-		l_uintset_free(ap->rates);
-
-	ap->started = false;
-}
-
 static void ap_del_station(struct sta_state *sta, uint16_t reason,
 				bool disassociate)
 {
@@ -249,91 +224,6 @@ static void ap_set_rsn_info(struct ap_state *ap, struct ie_rsn_info *rsn)
 	rsn->akm_suites = IE_RSN_AKM_SUITE_PSK;
 	rsn->pairwise_ciphers = ap->ciphers;
 	rsn->group_cipher = ap->group_cipher;
-}
-
-/*
- * Build a Beacon frame or a Probe Response frame's header and body until
- * the TIM IE.  Except for the optional TIM IE which is inserted by the
- * kernel when needed, our contents for both frames are the same.
- * See Beacon format in 8.3.3.2 and Probe Response format in 8.3.3.10.
- */
-static size_t ap_build_beacon_pr_head(struct ap_state *ap,
-					enum mpdu_management_subtype stype,
-					const uint8_t *dest, uint8_t *out_buf,
-					size_t out_len)
-{
-	struct mmpdu_header *mpdu = (void *) out_buf;
-	unsigned int len;
-	uint16_t capability = IE_BSS_CAP_ESS | IE_BSS_CAP_PRIVACY;
-	const uint8_t *bssid = netdev_get_address(ap->netdev);
-	uint32_t minr, maxr, count, r;
-	uint8_t *rates;
-	struct ie_tlv_builder builder;
-
-	memset(mpdu, 0, 36); /* Zero out header + non-IE fields */
-
-	/* Header */
-	mpdu->fc.protocol_version = 0;
-	mpdu->fc.type = MPDU_TYPE_MANAGEMENT;
-	mpdu->fc.subtype = stype;
-	memcpy(mpdu->address_1, dest, 6);	/* DA */
-	memcpy(mpdu->address_2, bssid, 6);	/* SA */
-	memcpy(mpdu->address_3, bssid, 6);	/* BSSID */
-
-	/* Body non-IE fields */
-	l_put_le16(ap->beacon_interval, out_buf + 32);	/* Beacon Interval */
-	l_put_le16(capability, out_buf + 34);		/* Capability Info */
-
-	ie_tlv_builder_init(&builder, out_buf + 36, out_len - 36);
-
-	/* SSID IE */
-	ie_tlv_builder_next(&builder, IE_TYPE_SSID);
-	ie_tlv_builder_set_data(&builder, ap->ssid, strlen(ap->ssid));
-
-	/* Supported Rates IE */
-	ie_tlv_builder_next(&builder, IE_TYPE_SUPPORTED_RATES);
-	rates = ie_tlv_builder_get_data(&builder);
-
-	minr = l_uintset_find_min(ap->rates);
-	maxr = l_uintset_find_max(ap->rates);
-	count = 0;
-	for (r = minr; r <= maxr && count < 8; r++)
-		if (l_uintset_contains(ap->rates, r)) {
-			uint8_t flag = 0;
-
-			/* Mark only the lowest rate as Basic Rate */
-			if (count == 0)
-				flag = 0x80;
-
-			*rates++ = r | flag;
-		}
-
-	ie_tlv_builder_set_length(&builder, rates -
-					ie_tlv_builder_get_data(&builder));
-
-	/* DSSS Parameter Set IE for DSSS, HR, ERP and HT PHY rates */
-	ie_tlv_builder_next(&builder, IE_TYPE_DSSS_PARAMETER_SET);
-	ie_tlv_builder_set_data(&builder, &ap->channel, 1);
-
-	ie_tlv_builder_finalize(&builder, &len);
-	return 36 + len;
-}
-
-/* Beacon / Probe Response frame portion after the TIM IE */
-static size_t ap_build_beacon_pr_tail(struct ap_state *ap, uint8_t *out_buf)
-{
-	size_t len;
-	struct ie_rsn_info rsn;
-
-	/* TODO: Country IE between TIM IE and RSNE */
-
-	/* RSNE */
-	ap_set_rsn_info(ap, &rsn);
-	if (!ie_build_rsne(&rsn, out_buf))
-		return 0;
-	len = 2 + out_buf[1];
-
-	return len;
 }
 
 static uint32_t ap_send_mgmt_frame(struct ap_state *ap,
@@ -935,49 +825,6 @@ bad_frame:
 		l_error("Sending error (Re)Association Response failed");
 }
 
-/* 802.11-2016 9.3.3.6 */
-static void ap_assoc_req_cb(struct netdev *netdev,
-				const struct mmpdu_header *hdr,
-				const void *body, size_t body_len,
-				void *user_data)
-{
-	struct ap_state *ap = user_data;
-	struct sta_state *sta;
-	const uint8_t *from = hdr->address_2;
-	const struct mmpdu_association_request *req = body;
-	const uint8_t *bssid = netdev_get_address(ap->netdev);
-	struct ie_tlv_iter iter;
-
-	l_info("AP Association Request from %s", util_address_to_string(from));
-
-	if (memcmp(hdr->address_1, bssid, 6) ||
-			memcmp(hdr->address_3, bssid, 6))
-		return;
-
-	sta = l_queue_find(ap->sta_states, ap_sta_match_addr, from);
-	if (!sta) {
-		if (!ap_assoc_resp(ap, NULL, from, 0,
-				MMPDU_REASON_CODE_STA_REQ_ASSOC_WITHOUT_AUTH,
-				false, ap_fail_assoc_resp_cb))
-			l_error("Sending error Association Response failed");
-
-		return;
-	}
-
-	ie_tlv_iter_init(&iter, req->ies, body_len - sizeof(*req));
-	ap_assoc_reassoc(sta, false, &req->capability,
-				L_LE16_TO_CPU(req->listen_interval), &iter);
-}
-
-static void ap_probe_resp_cb(struct l_genl_msg *msg, void *user_data)
-{
-	if (l_genl_msg_get_error(msg) < 0)
-		l_error("AP Probe Response not sent: %i",
-			l_genl_msg_get_error(msg));
-	else
-		l_info("AP Probe Response sent OK");
-}
-
 static void ap_auth_reply_cb(struct l_genl_msg *msg, void *user_data)
 {
 	if (l_genl_msg_get_error(msg) < 0)
@@ -985,34 +832,6 @@ static void ap_auth_reply_cb(struct l_genl_msg *msg, void *user_data)
 			l_genl_msg_get_error(msg));
 	else
 		l_info("AP Authentication frame 2 ACKed by STA");
-}
-
-static void ap_auth_reply(struct ap_state *ap, const uint8_t *dest,
-				enum mmpdu_reason_code status_code)
-{
-	const uint8_t *addr = netdev_get_address(ap->netdev);
-	uint8_t mpdu_buf[64];
-	struct mmpdu_header *mpdu = (struct mmpdu_header *) mpdu_buf;
-	struct mmpdu_authentication *auth;
-
-	memset(mpdu, 0, sizeof(*mpdu));
-
-	/* Header */
-	mpdu->fc.protocol_version = 0;
-	mpdu->fc.type = MPDU_TYPE_MANAGEMENT;
-	mpdu->fc.subtype = MPDU_MANAGEMENT_SUBTYPE_AUTHENTICATION;
-	memcpy(mpdu->address_1, dest, 6);	/* DA */
-	memcpy(mpdu->address_2, addr, 6);	/* SA */
-	memcpy(mpdu->address_3, addr, 6);	/* BSSID */
-
-	/* Authentication body */
-	auth = (void *) mmpdu_body(mpdu);
-	auth->algorithm = L_CPU_TO_LE16(MMPDU_AUTH_ALGO_OPEN_SYSTEM);
-	auth->transaction_sequence = L_CPU_TO_LE16(2);
-	auth->status = L_CPU_TO_LE16(status_code);
-
-	ap_send_mgmt_frame(ap, mpdu, (uint8_t *) auth + 6 - mpdu_buf, true,
-				ap_auth_reply_cb, NULL);
 }
 
 static void ap_add_interface(struct netdev *netdev)

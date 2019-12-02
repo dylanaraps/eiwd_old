@@ -124,13 +124,6 @@ static void adhoc_set_rsn_info(struct adhoc_state *adhoc,
 	rsn->group_cipher = adhoc->group_cipher;
 }
 
-static bool ap_sta_match_addr(const void *a, const void *b)
-{
-	const struct sta_state *sta = a;
-
-	return !memcmp(sta->addr, b, 6);
-}
-
 static void adhoc_handshake_event(struct handshake_state *hs,
 		enum handshake_event event, void *user_data, ...)
 {
@@ -252,36 +245,6 @@ static void adhoc_start_rsna(struct sta_state *sta, const uint8_t *gtk_rsc)
 	return;
 
 failed:
-	adhoc_remove_sta(sta);
-}
-
-static void adhoc_gtk_op_cb(struct l_genl_msg *msg, void *user_data)
-{
-	if (l_genl_msg_get_error(msg) < 0) {
-		uint8_t cmd = l_genl_msg_get_command(msg);
-		const char *cmd_name =
-			cmd == NL80211_CMD_NEW_KEY ? "NEW_KEY" : "SET_KEY";
-
-		l_error("%s failed for the GTK: %i",
-			cmd_name, l_genl_msg_get_error(msg));
-	}
-}
-
-static void adhoc_gtk_query_cb(struct l_genl_msg *msg, void *user_data)
-{
-	struct sta_state *sta = user_data;
-	const void *gtk_rsc;
-
-	sta->gtk_query_cmd_id = 0;
-
-	gtk_rsc = nl80211_parse_get_key_seq(msg);
-	if (!gtk_rsc)
-		goto error;
-
-	adhoc_start_rsna(sta, gtk_rsc);
-	return;
-
-error:
 	adhoc_remove_sta(sta);
 }
 
