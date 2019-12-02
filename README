@@ -1,292 +1,39 @@
-IWD NO DBUS WIP
+IWD NO DBUS
 
-GOAL 1: Get the daemon to function using config files (No iwctl and friends).
-GOAL 2: Implement IPC between clients without DBUS.
+GOALS
 
----
----
----
+* Get the daemon to function using config files (No iwctl and friends). DONE
 
-Wireless daemon for Linux
-*************************
+* Implement IPC between clients without DBUS. SOON(TM)
 
-Copyright (C) 2013-2019  Intel Corporation. All rights reserved.
 
+BUILDING
 
-Compilation and installation
-============================
+    ./configure \
+        --prefix=/usr \
+        --localstatedir=/var \
+        --disable-dbus-policy \
+        --disable-systemd-service
 
-In order to compile the source code you need following software packages:
-	- GCC compiler
-	- GNU C library
-	- Embedded Linux library
-	- readline (command line client)
+    make
+    make install
 
-To configure run:
-	./configure --prefix=/usr
 
-Configure automatically searches for all required components and packages.
+SYSTEM-WIDE CONFIG (/etc/iwd/main.conf)
 
-To compile and install run:
-	make && make install
+    [General]
+    EnableNetworkConfiguration=true
+    UseDefaultInterface=true
 
+    [Network]
+    NameResolvingService=resolvconf
 
-Embedded Linux library
-======================
 
-In order to compile the daemon and control utility the development version
-of Embedded Linux library is required to be present. The development
-repositories can be found here:
+PER-NETWORK CONFIGS (/var/lib/iwd/ssid.psk)
 
-	git://git.kernel.org/pub/scm/libs/ell/ell.git
-	https://kernel.googlesource.com/pub/scm/libs/ell/ell.git
+    [Settings]
+    AutoConnect=true
 
-The build systems requires that the Embedded Linux library source code
-is available on the same top level directory as the Wireless daemon
-source code:
-
-	.
-	|--- ell
-	|    |--- ell
-	|    `--- unit
-	`--- iwd
-	     |--- src
-	     `--- client
-
-It is not required to build or install Embedded Linux library. The build
-will happen when building the Wireless daemon and it will then be linked
-internally.
-
-When using --enable-external-ell build option, it is not required that the
-Embedded Linux library source code is available in the top level directory.
-
-The tarballs include a copy of the Embedded Linux library source files. When
-building from the tarballs, then it is not required to have the library
-sources available in the top level directory.
-
-
-Manual pages
-============
-
-The manual pages are generated from reStructuredText markup source files
-during the normal build process. The generation requires the rst2man utility
-from Python Docutils project. If rst2man is for some reason not available,
-using --disable-manual-pages will skip the manual pages generation and
-installation.
-
-When building from the tarballs, a copy of the generated manual pages is
-included and the rst2man utility is actually not needed.
-
-
-Configuration and options
-=========================
-
-The configuration system provides switches to disable certain build time
-configuration options which are generally useful and enabled by default:
-
-	--disable-daemon
-
-		Disable installation of Wireless daemon
-
-		By default the Wireless daemon binary iwd is enabled and
-		placed into --libexecdir directory.
-
-	--disable-client
-
-		Disable installation of Wireless client utility
-
-		By default the Wireless client binary iwctl is enabled
-		and place into --bindir directory.
-
-	--disable-monitor
-
-		Disable installation of Wireless monitor utility
-
-		By default the Wireless monitor binary iwmon is enabled
-		and place into --bindir directory.
-
-	--disable-dbus-policy
-
-		Disable installation of D-Bus system policy configuration
-
-		By default the accompanying D-Bus policy file will be
-		installed in the D-Bus data directory. The location of
-		that directory will be automatically detected or can be
-		manually configured via the --with-dbus-datadir option.
-
-		The D-Bus policy is required for daemons to gain service
-		name ownership and clients to access them. When disabling
-		this option, manual installation of D-Bus polices is
-		required.
-
-		Note: This option affects all D-Bus policy configurations.
-
-	--disable-systemd-service
-
-		Disable installation of systemd service configuration
-
-		By default the accompanying systemd service unit with
-		D-Bus autostart configuration will be installed. The
-		locations will be automatically detected or can be
-		manually configured via --with-dbus-busdir option
-		and --with-systemd-unitdir option.
-
-		Using systemd is optional, but highly recommended. When
-		disabling this option, manual installation is required.
-
-		Note: This option affects all systemd unit setups.
-
-	--disable-manual-pages
-
-		Disable generation and installation of manual pages
-
-		By default all available manual pages will be generated
-		and installed. When disabling this options, no manual
-		pages are installed.
-
-		Note: This options affects all manual pages.
-
-When building for a system that wants to use wireless technology, disabling
-any of the above options makes only limited sense. It may break the general
-setup and usability for wireless connections.
-
-The configuration system provides switches for optional build time features
-that can be enabled if the functionality is required:
-
-	--enable-external-ell
-
-		Enable usage of external Embedded Linux library
-
-		This allows using an externally installed Embedded Linux
-		library instead of using the internal copy of ELL.
-
-		Since the public API of Embedded Linux library is not yet
-		stable, the usage of the internal ELL copy is preferred.
-
-	--enable-wired
-
-		Enable installation of Ethernet authentication daemon
-
-		This allows enabling the Ethernet daemon binary ead which
-		is then placed into --libexecdir directory.
-
-		With this option the support for 802.1x for wired Ethernet
-		connections can be enabled. It provides its own D-Bus
-		policy and systemd configuration.
-
-	--enable-hwsim
-
-		Enable installation of Wireless simulation utility
-
-		This allows enabling the Simulation daemon binary hwsim
-		which is then placed into --bindir directory.
-
-		With this utility and mac80211_hwim kernel module the
-		simulation of 802.11 networks can be tested. It provides
-		its own D-Bus policy configuration.
-
-		This utility is only useful for developers and should not
-		be considered for general installation. For this reason
-		no systemd configuration is provided.
-
-	--enable-tools
-
-		Enable compilation of various testing utilities
-
-		This enables building of all utilities that are however
-		not installed and only useful during development.
-
-	--enable-ofono
-
-		Enable support for oFono SIM authentication
-
-		Note: With --disable-daemon this option is ignored
-
-	--enable-sim-hardcoded
-
-		Enable support for hard coded SIM keys
-
-		Note: With --disable-daemon this option is ignored
-
-
-Netlink monitoring
-==================
-
-The included iwmon utility can be used to monitor the 802.11 subsystem
-generic netlink commands and events. It uses the nlmon kernel driver
-from Linux 3.10 and later. On startup network monitor interface named
-named 'nlmon' is created unless another interface name is given on the
-command line. If the monitor interface was created by the iwmon utility,
-it will be removed on program exit.
-
-Manually the monitor interface can be created using the following
-commands:
-
-	ip link add name nlmon type nlmon
-	ip link set dev nlmon allmulticast on
-	ip link set dev nlmon up
-
-It is possible to create netlink traces in PCAP format using tcpdump
-and then read them via iwmon utility:
-
-	tcpdump -i nlmon -w trace-file.pcap
-
-The resulting PCAP files will use Linux cooked packet format containing
-packets with ARPHRD_NETLINK type. They can be read using iwmon:
-
-	iwmon -r trace-file.pcap
-
-At this time iwmon is not able to write PCAP files by itself. This might
-change in future versions.
-
-When also the authentication protocol traffic on port 0x888e (ETH_P_PAE)
-is needed, then a second capture is required:
-
-	tcpdump -i any 'ether proto 0x888e' -w trace-pae.pcap
-
-It is possible to combine these two PCAP files using the mergecap utility
-and create a combined trace file:
-
-	mergecap -F pcap -w trace.pcap trace-file.pcap trace-pae.pcap
-
-This will create a trace.pcap file that includes the complete picture
-of nl80211 netlink traffic and authentication messages. All packets are
-merged in chronological order based on timestamps.
-
-Unfortunately it is not possible to instruct tcpdump filtering to do
-this in a single capture. Post-processing of the PCAP files is required
-at the moment.
-
-
-Simulating devices
-==================
-
-The Linux driver mac80211_hwsim provides the functionality to simulate
-Wireless devices using fake virtual air. Just load the module.
-
-	modprobe mac80211_hwsim radios=0
-
-Providing the radios=0 is important since otherwise it starts out with
-two new Wireless radios by default.
-
-With the provided hwsim utility it is now possible to add and remove
-virtual radio devices.
-
-	hwsim --create --keep
-	hwsim --destroy=<radio-id>
-
-The radio id assigned to each virtual device is its internal id used
-by the Wireless device.
-
-
-Information
-===========
-
-Mailing list:
-	https://lists.01.org/mailman/listinfo/iwd
-
-IRC:
-	irc://irc.freenode.net/#iwd
-
-Wiki:
-	https://iwd.wiki.kernel.org/
+    [Security]
+    PreSharedKey=c2b336460f6b294174d2abc08010ed1984208c451e66c22d7be1236ad38cffb7
+    Passphrase=2645092660
