@@ -141,8 +141,7 @@ if MANUAL_PAGES
 man_MANS =
 endif
 
-manual_pages = src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5 \
-		wired/ead.8
+manual_pages = src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5
 
 eap_sources = src/eap.c src/eap.h src/eap-private.h \
 				src/eap-wsc.c src/eap-wsc.h \
@@ -221,22 +220,6 @@ endif
 
 if MANUAL_PAGES
 man_MANS += src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5
-endif
-endif
-
-if WIRED
-bin_PROGRAMS += wired/ead
-
-wired_ead_SOURCES = wired/main.c wired/ethdev.h wired/ethdev.c \
-				wired/network.h wired/network.c \
-				wired/dbus.h wired/dbus.c \
-				src/module.h src/module.c \
-				$(eap_sources)
-wired_ead_LDADD = $(ell_ldadd)
-wired_ead_DEPENDENCIES = $(ell_dependencies)
-
-if MANUAL_PAGES
-man_MANS += wired/ead.8
 endif
 endif
 
@@ -399,7 +382,6 @@ CLEANFILES =
 
 DISTCHECK_CONFIGURE_FLAGS =  \
 				--enable-sim-hardcoded \
-				--enable-wired \
 				--enable-tools
 
 DISTCLEANFILES = $(BUILT_SOURCES) $(unit_tests) $(manual_pages)
@@ -519,9 +501,6 @@ endif
 install-data-local:
 if DAEMON
 	$(MKDIR_P) -m 700 $(DESTDIR)$(daemon_storagedir)
-endif
-if WIRED
-	$(MKDIR_P) -m 700 $(DESTDIR)$(wired_storagedir)
 endif
 
 clean-local:

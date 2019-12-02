@@ -110,22 +110,16 @@ fi
 
 if (test "$localstatedir" = '${prefix}/var'); then
 	daemon_storagedir="${prefix}/var/lib/iwd"
-	wired_storagedir="${prefix}/var/lib/ead"
 else
 	daemon_storagedir="${localstatedir}/lib/iwd"
-	wired_storagedir="${localstatedir}/lib/ead"
 fi
 
 AC_SUBST([daemon_storagedir], [${daemon_storagedir}])
-AC_SUBST([wired_storagedir], [${wired_storagedir}])
 
 AC_DEFINE_UNQUOTED(DAEMON_STORAGEDIR, "${daemon_storagedir}",
 			[Directory for Wireless daemon storage files])
 AC_DEFINE_UNQUOTED(DAEMON_CONFIGDIR, "/etc/iwd",
 			[Directory for Wireless daemon configuration])
-
-AC_DEFINE_UNQUOTED(WIRED_STORAGEDIR, "${wired_storagedir}",
-			[Directory for Ethernet daemon storage files])
 
 AC_CHECK_FUNCS(explicit_bzero)
 
@@ -173,7 +167,6 @@ if (test "${enable_external_ell}" = "yes"); then
 	if (test "${enable_daemon}" != "no" ||
 			test "${enable_client}" != "no" ||
 			test "${enable_monitor}" != "no" ||
-			test "${enable_wired}" = "yes" ||
 			test "${enable_hwsim}" = "yes"); then
 		ell_min_version="0.26"
 	else
@@ -186,11 +179,6 @@ if (test "${enable_external_ell}" = "yes"); then
 fi
 AM_CONDITIONAL(EXTERNAL_ELL, test "${enable_external_ell}" = "yes")
 
-
-AC_ARG_ENABLE([wired], AC_HELP_STRING([--enable-wired],
-				[enable Ethernet authentication support]),
-					[enable_wired=${enableval}])
-AM_CONDITIONAL(WIRED, test "${enable_wired}" = "yes")
 
 AC_ARG_ENABLE([hwsim], AC_HELP_STRING([--enable-hwsim],
 				[enable Wireless simulation utility]),
