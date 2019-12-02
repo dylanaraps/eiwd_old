@@ -2399,7 +2399,7 @@ next:
 
 	network = network_psk ? : network_open;
 
-	network_connect_new_hidden_network(network, msg);
+	network_connect_new_hidden_network(network);
 	l_dbus_message_unref(msg);
 
 	return true;

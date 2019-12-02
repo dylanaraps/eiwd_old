@@ -40,7 +40,6 @@
 #include "src/common.h"
 #include "src/storage.h"
 #include "src/scan.h"
-#include "src/dbus.h"
 #include "src/agent.h"
 #include "src/netdev.h"
 #include "src/wiphy.h"
@@ -741,140 +740,6 @@ struct scan_bss *network_bss_select(struct network *network,
 	return NULL;
 }
 
-static void passphrase_callback(enum agent_result result,
-				const char *passphrase,
-				struct l_dbus_message *message,
-				void *user_data)
-{
-	struct network *network = user_data;
-	struct station *station = network->station;
-	const char *ssid = network_get_ssid(network);
-	struct scan_bss *bss;
-	int r;
-
-	l_debug("result %d", result);
-
-	network->agent_request = 0;
-
-	/*
-	 * agent will release its reference to message after invoking this
-	 * callback.  So if we want this message, we need to take a reference
-	 * to it
-	 */
-	l_dbus_message_ref(message);
-
-	if (result != AGENT_RESULT_OK) {
-		dbus_pending_reply(&message, dbus_error_aborted(message));
-		goto err;
-	}
-
-	bss = network_bss_select(network, true);
-
-	/* Did all good BSSes go away while we waited */
-	if (!bss) {
-		dbus_pending_reply(&message, dbus_error_failed(message));
-		goto err;
-	}
-
-	network_reset_psk(network);
-	network->psk = l_malloc(32);
-	r = crypto_psk_from_passphrase(passphrase,
-					(uint8_t *) ssid, strlen(ssid),
-					network->psk);
-	if (r) {
-		struct l_dbus_message *error;
-
-		l_free(network->psk);
-		network->psk = NULL;
-
-		if (r == -ERANGE || r == -EINVAL)
-			error = dbus_error_invalid_format(message);
-		else {
-			l_error("PSK generation failed: %s.  "
-				"Ensure Crypto Engine is properly configured",
-				strerror(-r));
-			error = dbus_error_failed(message);
-		}
-
-		dbus_pending_reply(&message, error);
-		goto err;
-	}
-
-	network_reset_passphrase(network);
-	network->passphrase = l_strdup(passphrase);
-
-	/*
-	 * We need to store the PSK in our permanent store.  However, before
-	 * we do that, make sure the PSK works.  We write to the store only
-	 * when we are connected
-	 */
-	network->update_psk = true;
-
-	station_connect_network(station, network, bss, message);
-	l_dbus_message_unref(message);
-	return;
-
-err:
-	network_settings_close(network);
-}
-
-static struct l_dbus_message *network_connect_psk(struct network *network,
-					struct scan_bss *bss,
-					struct l_dbus_message *message)
-{
-	struct station *station = network->station;
-	/*
-	 * A legacy psk file may only contain the PreSharedKey entry. For SAE
-	 * networks the raw Passphrase is required. So in this case where
-	 * the psk is found but no Passphrase, we ask the agent.  The psk file
-	 * will then be re-written to contain the raw passphrase.
-	 */
-	bool need_passphrase = bss_is_sae(bss);
-
-	if  (!network_settings_load(network)) {
-		network->settings = l_settings_new();
-		network->ask_passphrase = true;
-	} else if (!network->ask_passphrase)
-		network->ask_passphrase =
-			network_load_psk(network, need_passphrase) < 0;
-
-	l_debug("ask_passphrase: %s",
-		network->ask_passphrase ? "true" : "false");
-
-	if (network->ask_passphrase) {
-		network->ask_passphrase = false;
-
-		network->agent_request =
-			agent_request_passphrase(network->object_path,
-						passphrase_callback,
-						message, network, NULL);
-
-		if (!network->agent_request)
-			return dbus_error_no_agent(message);
-	} else
-		station_connect_network(station, network, bss, message);
-
-	return NULL;
-}
-
-struct eap_secret_request {
-	struct network *network;
-	struct eap_secret_info *secret;
-	struct l_queue *pending_secrets;
-	void (*callback)(enum agent_result result,
-				struct l_dbus_message *message,
-				struct eap_secret_request *req);
-};
-
-static void eap_secret_request_free(void *data)
-{
-	struct eap_secret_request *req = data;
-
-	eap_secret_info_free(req->secret);
-	l_queue_destroy(req->pending_secrets, eap_secret_info_free);
-	l_free(req);
-}
-
 static bool eap_secret_info_match_local(const void *a, const void *b)
 {
 	const struct eap_secret_info *info = a;
@@ -882,277 +747,10 @@ static bool eap_secret_info_match_local(const void *a, const void *b)
 	return info->type == EAP_SECRET_LOCAL_PKEY_PASSPHRASE;
 }
 
-static void eap_password_callback(enum agent_result result, const char *value,
-					struct l_dbus_message *message,
-					void *user_data)
-{
-	struct eap_secret_request *req = user_data;
-
-	req->network->agent_request = 0;
-	req->secret->value = l_strdup(value);
-
-	req->callback(result, message, req);
-}
-
-static void eap_user_password_callback(enum agent_result result,
-					const char *user, const char *passwd,
-					struct l_dbus_message *message,
-					void *user_data)
-{
-	struct eap_secret_request *req = user_data;
-
-	req->network->agent_request = 0;
-
-	if (user && passwd) {
-		size_t len1 = strlen(user) + 1;
-		size_t len2 = strlen(passwd) + 1;
-
-		req->secret->value = l_malloc(len1 + len2);
-		memcpy(req->secret->value, user, len1);
-		memcpy(req->secret->value + len1, passwd, len2);
-	}
-
-	req->callback(result, message, req);
-}
-
-static bool eap_send_agent_req(struct network *network,
-				struct l_queue *pending_secrets,
-				struct l_dbus_message *message,
-				void *callback)
-{
-	struct eap_secret_request *req;
-	struct eap_secret_info *info;
-
-	/*
-	 * Request the locally-verifiable data first, i.e.
-	 * the private key encryption passphrases so that we don't bother
-	 * asking for any other data if these passphrases turn out to
-	 * be wrong.
-	 */
-	info = l_queue_remove_if(pending_secrets, eap_secret_info_match_local,
-					NULL);
-
-	if (!info)
-		info = l_queue_pop_head(pending_secrets);
-
-	req = l_new(struct eap_secret_request, 1);
-	req->network = network;
-	req->secret = info;
-	req->pending_secrets = pending_secrets;
-	req->callback = callback;
-
-	switch (info->type) {
-	case EAP_SECRET_LOCAL_PKEY_PASSPHRASE:
-		network->agent_request = agent_request_pkey_passphrase(
-						network->object_path,
-						eap_password_callback,
-						message, req,
-						eap_secret_request_free);
-		break;
-	case EAP_SECRET_REMOTE_PASSWORD:
-		network->agent_request = agent_request_user_password(
-						network->object_path,
-						info->parameter,
-						eap_password_callback,
-						message, req,
-						eap_secret_request_free);
-		break;
-	case EAP_SECRET_REMOTE_USER_PASSWORD:
-		network->agent_request = agent_request_user_name_password(
-						network->object_path,
-						eap_user_password_callback,
-						message, req,
-						eap_secret_request_free);
-		break;
-	}
-
-	if (network->agent_request)
-		return true;
-
-	eap_secret_request_free(req);
-	return false;
-}
-
-static struct l_dbus_message *network_connect_8021x(struct network *network,
-						struct scan_bss *bss,
-						struct l_dbus_message *message);
-
-static void eap_secret_done(enum agent_result result,
-				struct l_dbus_message *message,
-				struct eap_secret_request *req)
-{
-	struct network *network = req->network;
-	struct eap_secret_info *secret = req->secret;
-	struct l_queue *pending = req->pending_secrets;
-	struct scan_bss *bss;
-
-	l_debug("result %d", result);
-
-	/*
-	 * Agent will release its reference to message after invoking this
-	 * callback.  So if we want this message, we need to take a reference
-	 * to it.
-	 */
-	l_dbus_message_ref(message);
-
-	if (result != AGENT_RESULT_OK) {
-		dbus_pending_reply(&message, dbus_error_aborted(message));
-		goto err;
-	}
-
-	bss = network_bss_select(network, true);
-
-	/* Did all good BSSes go away while we waited */
-	if (!bss) {
-		dbus_pending_reply(&message, dbus_error_failed(message));
-		goto err;
-	}
-
-	if (!network->secrets)
-		network->secrets = l_queue_new();
-
-	l_queue_push_tail(network->secrets, secret);
-
-	req->secret = NULL;
-
-	/*
-	 * If we have any other missing secrets in the queue, send the
-	 * next request immediately unless we've just received a passphrase
-	 * for a local private key.  In that case we will first call
-	 * network_connect_8021x to have it validate the new passphrase.
-	 */
-	if (secret->type == EAP_SECRET_LOCAL_PKEY_PASSPHRASE ||
-			l_queue_isempty(req->pending_secrets)) {
-		struct l_dbus_message *reply;
-
-		reply = network_connect_8021x(network, bss, message);
-		if (reply)
-			dbus_pending_reply(&message, reply);
-		else
-			l_dbus_message_unref(message);
-
-		return;
-	}
-
-	req->pending_secrets = NULL;
-
-	if (eap_send_agent_req(network, pending, message,
-				eap_secret_done)) {
-		l_dbus_message_unref(message);
-		return;
-	}
-
-	dbus_pending_reply(&message, dbus_error_no_agent(message));
-err:
-	network_settings_close(network);
-}
-
-static struct l_dbus_message *network_connect_8021x(struct network *network,
-						struct scan_bss *bss,
-						struct l_dbus_message *message)
-{
-	struct station *station = network->station;
-	int r;
-	struct l_queue *missing_secrets = NULL;
-	struct l_dbus_message *reply;
-
-	l_debug("");
-
-	r = eap_check_settings(network->settings, network->secrets, "EAP-",
-				true, &missing_secrets);
-	if (r) {
-		if (r == -EUNATCH)
-			reply = dbus_error_not_available(message);
-		else if (r == -ENOTSUP)
-			reply = dbus_error_not_supported(message);
-		else if (r == -EACCES)
-			reply = dbus_error_failed(message);
-		else
-			reply = dbus_error_not_configured(message);
-
-		goto error;
-	}
-
-	l_debug("supplied %u secrets, %u more needed for EAP",
-		l_queue_length(network->secrets),
-		l_queue_length(missing_secrets));
-
-	if (l_queue_isempty(missing_secrets)) {
-		if (!network_set_8021x_secrets(network)) {
-			reply = dbus_error_failed(message);
-
-			goto error;
-		}
-
-		station_connect_network(station, network, bss, message);
-
-		return NULL;
-	}
-
-	if (eap_send_agent_req(network, missing_secrets, message,
-				eap_secret_done))
-		return NULL;
-
-	reply = dbus_error_no_agent(message);
-
-error:
-	network_settings_close(network);
-
-	l_queue_destroy(network->secrets, eap_secret_info_free);
-	network->secrets = NULL;
-
-	return reply;
-}
-
-static struct l_dbus_message *network_connect(struct l_dbus *dbus,
-						struct l_dbus_message *message,
-						void *user_data)
-{
-	struct network *network = user_data;
-	struct station *station = network->station;
-	struct scan_bss *bss;
-
-	l_debug("");
-
-	if (network == station_get_connected_network(station))
-		/*
-		 * The requested network is already connected, return success.
-		 */
-		return l_dbus_message_new_method_return(message);
-
-	/*
-	 * Select the best BSS to use at this time.  If we have to query the
-	 * agent this may not be the final choice because BSS visibility can
-	 * change while we wait for the agent.
-	 */
-	bss = network_bss_select(network, true);
-
-	/* None of the BSSes is compatible with our stack */
-	if (!bss)
-		return dbus_error_not_supported(message);
-
-	switch (network_get_security(network)) {
-	case SECURITY_PSK:
-		return network_connect_psk(network, bss, message);
-	case SECURITY_NONE:
-		station_connect_network(station, network, bss, message);
-		return NULL;
-	case SECURITY_8021X:
-		if (!network_settings_load(network))
-			return dbus_error_not_configured(message);
-
-		return network_connect_8021x(network, bss, message);
-	default:
-		return dbus_error_not_supported(message);
-	}
-}
-
-void network_connect_new_hidden_network(struct network *network,
-						struct l_dbus_message *message)
+void network_connect_new_hidden_network(struct network *network)
 {
 	struct station *station = network->station;
 	struct scan_bss *bss;
-	struct l_dbus_message *error;
 
 	l_debug("");
 
@@ -1165,8 +763,7 @@ void network_connect_new_hidden_network(struct network *network,
 	bss = network_bss_select(network, true);
 	if (!bss) {
 		/* This should never happened for the hidden networks. */
-		error = dbus_error_not_supported(message);
-		goto reply_error;
+        return;
 	}
 
 	network->settings = l_settings_new();
@@ -1174,23 +771,15 @@ void network_connect_new_hidden_network(struct network *network,
 
 	switch (network_get_security(network)) {
 	case SECURITY_PSK:
-		error = network_connect_psk(network, bss, message);
 		break;
 	case SECURITY_NONE:
-		station_connect_network(station, network, bss, message);
+		station_connect_network(station, network, bss, NULL);
 		return;
 	default:
-		error = dbus_error_not_supported(message);
 		break;
 	}
 
-	if (error)
-		goto reply_error;
-
 	return;
-
-reply_error:
-	dbus_pending_reply(&message, error);
 }
 
 void network_blacklist_add(struct network *network, struct scan_bss *bss)
@@ -1204,47 +793,6 @@ const struct iovec *network_get_extra_ies(struct network *network,
 	struct scan_bss *bss = network_bss_select(network, false);
 
 	return network_info_get_extra_ies(network->info, bss, num_elems);
-}
-
-static bool network_property_get_name(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool network_property_is_connected(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool network_property_get_device(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
-}
-
-static bool network_property_get_type(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-
-{
-	return true;
-}
-
-static bool network_property_get_known_network(struct l_dbus *dbus,
-					struct l_dbus_message *message,
-					struct l_dbus_message_builder *builder,
-					void *user_data)
-{
-	return true;
 }
 
 bool network_register(struct network *network, const char *path)
@@ -1418,8 +966,6 @@ static void known_networks_changed(enum known_networks_event event,
 		break;
 	}
 }
-
-static void setup_network_interface(struct l_dbus_interface *interface){}
 
 static int network_init(void)
 {
