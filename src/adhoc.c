@@ -441,97 +441,6 @@ static void adhoc_join_cb(struct netdev *netdev, int result, void *user_data)
 	adhoc->started = true;
 }
 
-static struct l_dbus_message *adhoc_dbus_start(struct l_dbus *dbus,
-						struct l_dbus_message *message,
-						void *user_data)
-{
-	struct adhoc_state *adhoc = user_data;
-	struct netdev *netdev = adhoc->netdev;
-	struct wiphy *wiphy = netdev_get_wiphy(netdev);
-	const char *ssid, *wpa2_psk;
-	struct ie_rsn_info rsn;
-	struct iovec rsn_ie;
-	uint8_t ie_elems[32];
-
-	if (adhoc->pending)
-		return dbus_error_busy(message);
-
-	if (!l_dbus_message_get_arguments(message, "ss", &ssid, &wpa2_psk))
-		return dbus_error_invalid_args(message);
-
-	adhoc->ssid = l_strdup(ssid);
-	adhoc->pending = l_dbus_message_ref(message);
-	adhoc->sta_states = l_queue_new();
-	adhoc->ciphers = wiphy_select_cipher(wiphy, 0xffff);
-	adhoc->group_cipher = wiphy_select_cipher(wiphy, 0xffff);
-
-	adhoc_set_rsn_info(adhoc, &rsn);
-	ie_build_rsne(&rsn, ie_elems);
-
-	rsn_ie.iov_base = ie_elems;
-	rsn_ie.iov_len = ie_elems[1] + 2;
-
-	if (crypto_psk_from_passphrase(wpa2_psk, (uint8_t *) ssid,
-			strlen(ssid), adhoc->pmk))
-		return dbus_error_invalid_args(message);
-
-	if (netdev_join_adhoc(netdev, ssid, &rsn_ie, 1, true, adhoc_join_cb,
-			adhoc))
-		return dbus_error_invalid_args(message);
-
-	return NULL;
-}
-
-static struct l_dbus_message *adhoc_dbus_start_open(struct l_dbus *dbus,
-				struct l_dbus_message *message, void *user_data)
-{
-	struct adhoc_state *adhoc = user_data;
-	struct netdev *netdev = adhoc->netdev;
-	const char *ssid;
-	struct iovec rsn_ie;
-	uint8_t ie_elems[10];
-
-	if (adhoc->pending)
-		return dbus_error_busy(message);
-
-	if (!l_dbus_message_get_arguments(message, "s", &ssid))
-		return dbus_error_invalid_args(message);
-
-	adhoc->ssid = l_strdup(ssid);
-	adhoc->pending = l_dbus_message_ref(message);
-	adhoc->sta_states = l_queue_new();
-	adhoc->open = true;
-
-	/* Mac/iPhone seem to require the extended capabilities field */
-	memset(ie_elems, 0, sizeof(ie_elems));
-	ie_elems[0] = IE_TYPE_EXTENDED_CAPABILITIES;
-	ie_elems[1] = 8;
-
-	rsn_ie.iov_base = ie_elems;
-	rsn_ie.iov_len = ie_elems[1] + 2;
-
-	if (netdev_join_adhoc(netdev, ssid, &rsn_ie, 1, false, adhoc_join_cb,
-			adhoc))
-		return dbus_error_invalid_args(message);
-
-	return NULL;
-}
-
-static void adhoc_leave_cb(struct netdev *netdev, int result, void *user_data)
-{
-	struct adhoc_state *adhoc = user_data;
-
-	if (result < 0) {
-		l_error("Failed to leave adhoc network, %i", result);
-		return;
-	}
-
-	dbus_pending_reply(&adhoc->pending,
-			l_dbus_message_new_method_return(adhoc->pending));
-
-	adhoc_reset(adhoc);
-}
-
 static void sta_append(void *data, void *user_data)
 {
 	struct sta_state *sta = data;
@@ -542,8 +451,6 @@ static void sta_append(void *data, void *user_data)
 
 	macstr = util_address_to_string(sta->addr);
 }
-
-static void adhoc_setup_interface(struct l_dbus_interface *interface){}
 
 static void adhoc_destroy_interface(void *user_data)
 {
