@@ -445,7 +445,6 @@ static void adhoc_netdev_watch(struct netdev *netdev,
 		break;
 	case NETDEV_WATCH_EVENT_DOWN:
 	case NETDEV_WATCH_EVENT_DEL:
-		adhoc_remove_interface(netdev);
 		break;
 	default:
 		break;
