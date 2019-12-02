@@ -438,21 +438,6 @@ error:
 	handshake_state_free(hs);
 }
 
-static void station_state_watch(enum station_state state, void *userdata)
-{
-	struct wsc *wsc = userdata;
-
-	if (state != STATION_STATE_DISCONNECTED)
-		return;
-
-	l_debug("%p", wsc);
-
-	station_remove_state_watch(wsc->station, wsc->station_state_watch);
-	wsc->station_state_watch = 0;
-
-	wsc_connect(wsc);
-}
-
 static void wsc_add_interface(struct netdev *netdev)
 {
 	struct wsc *wsc;

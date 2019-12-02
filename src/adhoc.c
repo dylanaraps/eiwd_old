@@ -115,17 +115,6 @@ static void adhoc_remove_sta(struct sta_state *sta)
 	adhoc_sta_free(sta);
 }
 
-static void adhoc_reset(struct adhoc_state *adhoc)
-{
-	l_free(adhoc->ssid);
-
-	netdev_station_watch_remove(adhoc->netdev, adhoc->sta_watch_id);
-
-	l_queue_destroy(adhoc->sta_states, adhoc_sta_free);
-
-	adhoc->started = false;
-}
-
 static void adhoc_set_rsn_info(struct adhoc_state *adhoc,
 						struct ie_rsn_info *rsn)
 {
@@ -293,115 +282,6 @@ static void adhoc_gtk_query_cb(struct l_genl_msg *msg, void *user_data)
 	return;
 
 error:
-	adhoc_remove_sta(sta);
-}
-
-static void adhoc_new_station(struct adhoc_state *adhoc, const uint8_t *mac)
-{
-	struct sta_state *sta;
-	struct l_genl_msg *msg;
-
-	sta = l_queue_find(adhoc->sta_states, ap_sta_match_addr, mac);
-	if (sta) {
-		l_warn("new station event with already connected STA");
-		return;
-	}
-
-	/*
-	 * Follows same logic as AP. If this is the first station we create and
-	 * set a group key. Any subsequent connections will use GET_KEY for this
-	 * tx GTK.
-	 */
-	if (adhoc->group_cipher != IE_RSN_CIPHER_SUITE_NO_GROUP_TRAFFIC &&
-			!adhoc->gtk_set && !adhoc->open) {
-		enum crypto_cipher group_cipher =
-			ie_rsn_cipher_suite_to_cipher(adhoc->group_cipher);
-		int gtk_len = crypto_cipher_key_len(group_cipher);
-
-		/*
-		 * Generate our GTK.  Not following the example derivation
-		 * method in 802.11-2016 section 12.7.1.4 because a simple
-		 * l_getrandom is just as good.
-		 */
-		l_getrandom(adhoc->gtk, gtk_len);
-		adhoc->gtk_index = 1;
-
-		msg = nl80211_build_new_key_group(
-					netdev_get_ifindex(adhoc->netdev),
-					group_cipher, adhoc->gtk_index,
-					adhoc->gtk, gtk_len, NULL,
-					0, NULL);
-
-		if (!l_genl_family_send(adhoc->nl80211, msg, adhoc_gtk_op_cb,
-					NULL, NULL)) {
-			l_genl_msg_unref(msg);
-			l_error("Issuing NEW_KEY failed");
-			return;
-		}
-
-		msg = nl80211_build_set_key(netdev_get_ifindex(adhoc->netdev),
-						adhoc->gtk_index);
-		if (!l_genl_family_send(adhoc->nl80211, msg, adhoc_gtk_op_cb,
-					NULL, NULL)) {
-			l_genl_msg_unref(msg);
-			l_error("Issuing SET_KEY failed");
-			return;
-		}
-
-		/*
-		 * Set the flag now because any new associating STA will
-		 * just use NL80211_CMD_GET_KEY from now.
-		 */
-		adhoc->gtk_set = true;
-	}
-
-	sta = l_new(struct sta_state, 1);
-
-	memset(sta, 0, sizeof(struct sta_state));
-
-	memcpy(sta->addr, mac, 6);
-	sta->adhoc = adhoc;
-
-	l_queue_push_tail(adhoc->sta_states, sta);
-
-	l_info("new Station: "MAC" adhoc=%p", MAC_STR(mac), adhoc);
-
-	/* with open networks nothing else is required */
-	if (sta->adhoc->open) {
-		sta->authenticated = true;
-		return;
-	}
-
-	if (adhoc->group_cipher == IE_RSN_CIPHER_SUITE_NO_GROUP_TRAFFIC)
-		adhoc_start_rsna(sta, NULL);
-	else {
-		msg = nl80211_build_get_key(netdev_get_ifindex(adhoc->netdev),
-					adhoc->gtk_index);
-		sta->gtk_query_cmd_id = l_genl_family_send(adhoc->nl80211, msg,
-							adhoc_gtk_query_cb,
-							sta, NULL);
-		if (!sta->gtk_query_cmd_id) {
-			l_genl_msg_unref(msg);
-			l_error("Issuing GET_KEY failed");
-
-			adhoc_remove_sta(sta);
-			return;
-		}
-	}
-}
-
-static void adhoc_del_station(struct adhoc_state *adhoc, const uint8_t *mac)
-{
-	struct sta_state *sta;
-
-	sta = l_queue_find(adhoc->sta_states, ap_sta_match_addr, mac);
-	if (!sta) {
-		l_warn("could not find station "MAC" in list", MAC_STR(mac));
-		return;
-	}
-
-	l_debug("lost station "MAC, MAC_STR(mac));
-
 	adhoc_remove_sta(sta);
 }
 
