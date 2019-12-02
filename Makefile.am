@@ -141,7 +141,7 @@ man_MANS =
 endif
 
 manual_pages = src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5 \
-		monitor/iwmon.1 wired/ead.8 tools/hwsim.1
+		wired/ead.8 tools/hwsim.1
 
 eap_sources = src/eap.c src/eap.h src/eap-private.h \
 				src/eap-wsc.c src/eap-wsc.h \
@@ -226,31 +226,6 @@ endif
 
 if MANUAL_PAGES
 man_MANS += src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5
-endif
-endif
-
-if MONITOR
-bin_PROGRAMS += monitor/iwmon
-
-monitor_iwmon_SOURCES = monitor/main.c linux/nl80211.h \
-					monitor/nlmon.h monitor/nlmon.c \
-					monitor/pcap.h monitor/pcap.c \
-					monitor/display.h monitor/display.c \
-					src/ie.h src/ie.c \
-					src/wscutil.h src/wscutil.c \
-					src/mpdu.h src/mpdu.c \
-					src/util.h src/util.c \
-					src/crypto.h src/crypto.c \
-					src/watchlist.h src/watchlist.c \
-					src/eapolutil.h src/eapolutil.c \
-					src/handshake.h src/handshake.c \
-					src/nl80211cmd.h src/nl80211cmd.c \
-					src/p2putil.c src/p2putil.h \
-					src/anqputil.h src/anqputil.c
-monitor_iwmon_LDADD = $(ell_ldadd)
-
-if MANUAL_PAGES
-man_MANS += monitor/iwmon.1
 endif
 endif
 
