@@ -406,12 +406,6 @@ static void destroy_device_interface(void *user_data)
 
 static int device_init(void)
 {
-	if (!l_dbus_register_interface(dbus_get_bus(),
-					IWD_DEVICE_INTERFACE,
-					setup_device_interface,
-					destroy_device_interface, false))
-		return false;
-
 	netdev_watch = netdev_watch_add(device_netdev_notify, NULL, NULL);
 
 	return 0;
@@ -420,8 +414,6 @@ static int device_init(void)
 static void device_exit(void)
 {
 	netdev_watch_remove(netdev_watch);
-
-	l_dbus_unregister_interface(dbus_get_bus(), IWD_DEVICE_INTERFACE);
 }
 
 IWD_MODULE(device, device_init, device_exit)
