@@ -773,7 +773,7 @@ void network_connect_new_hidden_network(struct network *network)
 	case SECURITY_PSK:
 		break;
 	case SECURITY_NONE:
-		station_connect_network(station, network, bss, NULL);
+		station_connect_network(station, network, bss);
 		return;
 	default:
 		break;
