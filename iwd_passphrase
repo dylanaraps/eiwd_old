@@ -8,7 +8,12 @@
 }
 
 # Read the password from 'stdin'. This is the simplest
-read -r pass
+read -r pass; [ "$pass" ] || exit 1
+
+# Force the same character handling regardless of locale.
+# Doesn't seem to be needed but it's better to have it
+# even if the issue is rare.
+export LC_CTYPE=C
 
 # The SSID appears verbatim in the name if it contains
 # only alphanumeric characters, spaces, underscores or
@@ -16,7 +21,14 @@ read -r pass
 # followed by the lower-case hex encoding of the name.
 case $1 in
     *[!A-Za-z0-9-_' ']*)
-        ssid="=$(printf %s "$1" | od -vA n -t x1 | tr -d '\n ')"
+        # Encode the SSID in lowercase HEX using pure
+        # shell. Thanks E5ten.
+        ssid="=$(
+            while [ "$1" ]; do
+                printf '%02x' "'$1"
+                set -- "${1#?}"
+            done
+        )"
     ;;
 
     *)
@@ -27,5 +39,5 @@ esac
 printf '%s\n\n' "Save this output to /var/lib/iwd/$ssid.psk" >&2
 printf '[Security]\n'
 printf 'Passphrase=%s\n' "$pass"
-printf '\n%s\n' "TIP: You can use this output directly as the" >&2
-printf '%s\n'   "     help messages are printed to stderr." >&2
+printf '\nTIP: You can use this output directly as the\n' >&2
+printf '     help messages are printed to stderr.\n' >&2
