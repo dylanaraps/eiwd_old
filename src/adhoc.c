@@ -146,7 +146,6 @@ static void adhoc_handshake_event(struct handshake_state *hs,
 		enum handshake_event event, void *user_data, ...)
 {
 	struct sta_state *sta = user_data;
-	struct adhoc_state *adhoc = sta->adhoc;
 
 	switch (event) {
 	case HANDSHAKE_EVENT_FAILED:
@@ -424,39 +423,6 @@ static void adhoc_station_changed_cb(struct netdev *netdev,
 		adhoc_del_station(adhoc, mac);
 }
 
-static void adhoc_join_cb(struct netdev *netdev, int result, void *user_data)
-{
-	struct adhoc_state *adhoc = user_data;
-
-	if (result < 0) {
-		l_error("Failed to join adhoc network, %i", result);
-		return;
-	}
-
-	adhoc->sta_watch_id = netdev_station_watch_add(netdev,
-			adhoc_station_changed_cb, adhoc);
-
-	adhoc->started = true;
-}
-
-static void sta_append(void *data, void *user_data)
-{
-	struct sta_state *sta = data;
-	const char* macstr;
-
-	if (!sta->authenticated)
-		return;
-
-	macstr = util_address_to_string(sta->addr);
-}
-
-static void adhoc_destroy_interface(void *user_data)
-{
-	struct adhoc_state *adhoc = user_data;
-
-	adhoc_free(adhoc);
-}
-
 static void adhoc_add_interface(struct netdev *netdev)
 {
 	struct adhoc_state *adhoc;
@@ -465,10 +431,6 @@ static void adhoc_add_interface(struct netdev *netdev)
 	adhoc = l_new(struct adhoc_state, 1);
 	adhoc->netdev = netdev;
 	adhoc->nl80211 = l_genl_family_new(iwd_get_genl(), NL80211_GENL_NAME);
-}
-
-static void adhoc_remove_interface(struct netdev *netdev)
-{
 }
 
 static void adhoc_netdev_watch(struct netdev *netdev,
