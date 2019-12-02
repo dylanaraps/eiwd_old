@@ -136,25 +136,6 @@ bin_PROGRAMS =
 libexec_PROGRAMS =
 noinst_PROGRAMS =
 
-if DBUS_POLICY
-dbus_datadir = @DBUS_DATADIR@/dbus-1/system.d
-dist_dbus_data_DATA =
-endif
-
-if SYSTEMD_SERVICE
-systemd_unitdir = @SYSTEMD_UNITDIR@
-systemd_unit_DATA =
-
-dbus_busdir = @DBUS_BUSDIR@
-dbus_bus_DATA =
-
-systemd_networkdir = @SYSTEMD_NETWORKDIR@
-systemd_network_DATA =
-
-systemd_modloaddir = @SYSTEMD_MODLOADDIR@
-systemd_modload_DATA = src/pkcs8.conf
-endif
-
 if MANUAL_PAGES
 man_MANS =
 endif
@@ -243,19 +224,6 @@ builtin_modules += ofono
 builtin_sources += plugins/ofono.c
 endif
 
-if DBUS_POLICY
-dist_dbus_data_DATA += src/iwd-dbus.conf
-endif
-
-if SYSTEMD_SERVICE
-src_iwd_DEPENDENCIES += src/iwd.service
-
-systemd_unit_DATA += src/iwd.service
-dbus_bus_DATA += src/net.connman.iwd.service
-
-systemd_network_DATA += src/80-iwd.link
-endif
-
 if MANUAL_PAGES
 man_MANS += src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5
 endif
@@ -321,17 +289,6 @@ wired_ead_SOURCES = wired/main.c wired/ethdev.h wired/ethdev.c \
 wired_ead_LDADD = $(ell_ldadd)
 wired_ead_DEPENDENCIES = $(ell_dependencies)
 
-if DBUS_POLICY
-dist_dbus_data_DATA += wired/ead-dbus.conf
-endif
-
-if SYSTEMD_SERVICE
-wired_ead_DEPENDENCIES += wired/ead.service
-
-systemd_unit_DATA += wired/ead.service
-dbus_bus_DATA += wired/net.connman.ead.service
-endif
-
 if MANUAL_PAGES
 man_MANS += wired/ead.8
 endif
@@ -345,10 +302,6 @@ tools_hwsim_SOURCES = tools/hwsim.c src/mpdu.h \
 					src/storage.h src/storage.c \
 					src/common.h src/common.c
 tools_hwsim_LDADD = $(ell_ldadd)
-
-if DBUS_POLICY
-dist_dbus_data_DATA += tools/hwsim-dbus.conf
-endif
 
 if MANUAL_PAGES
 man_MANS += tools/hwsim.1
@@ -530,7 +483,7 @@ endif
 
 CLEANFILES = src/iwd.service wired/ead.service
 
-DISTCHECK_CONFIGURE_FLAGS = --disable-dbus-policy --disable-systemd-service \
+DISTCHECK_CONFIGURE_FLAGS =  \
 				--enable-sim-hardcoded \
 				--enable-ofono \
 				--enable-wired \
@@ -652,7 +605,6 @@ endif
 	$(RST2MAN_PROCESS)
 
 install-data-local:
-if !SYSTEMD_SERVICE
 if DAEMON
 	$(MKDIR_P) -m 700 $(DESTDIR)$(daemon_storagedir)
 endif
