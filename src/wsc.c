@@ -119,7 +119,6 @@ static void wsc_try_credentials(struct wsc *wsc)
 
 		station_connect_network(wsc->station, network, bss,
 								wsc->pending);
-		l_dbus_message_unref(wsc->pending);
 		wsc->pending = NULL;
 
 		goto done;
@@ -171,16 +170,10 @@ static void wsc_disconnect_cb(struct netdev *netdev, bool success,
 							void *user_data)
 {
 	struct wsc *wsc = user_data;
-	struct l_dbus_message *reply;
 
 	l_debug("%p, success: %d", wsc, success);
 
 	wsc->wsc_association = false;
-
-	reply = l_dbus_message_new_method_return(wsc->pending_cancel);
-	l_dbus_message_set_arguments(reply, "");
-	dbus_pending_reply(&wsc->pending_cancel, reply);
-
 	station_set_autoconnect(wsc->station, true);
 }
 
@@ -204,14 +197,10 @@ static void wsc_connect_cb(struct netdev *netdev, enum netdev_result result,
 
 	switch (result) {
 	case NETDEV_RESULT_ABORTED:
-		dbus_pending_reply(&wsc->pending,
-					dbus_error_aborted(wsc->pending));
 		return;
 	case NETDEV_RESULT_HANDSHAKE_FAILED:
 		break;
 	default:
-		dbus_pending_reply(&wsc->pending,
-					dbus_error_failed(wsc->pending));
 		break;
 	}
 
@@ -476,8 +465,6 @@ static void wsc_connect(struct wsc *wsc)
 	return;
 error:
 	handshake_state_free(hs);
-	dbus_pending_reply(&wsc->pending,
-				dbus_error_failed(wsc->pending));
 }
 
 static void station_state_watch(enum station_state state, void *userdata)
@@ -530,7 +517,6 @@ static void wsc_check_can_connect(struct wsc *wsc, struct scan_bss *target)
 	}
 error:
 	wsc->target = NULL;
-	dbus_pending_reply(&wsc->pending, dbus_error_failed(wsc->pending));
 }
 
 static void wsc_cancel_scan(struct wsc *wsc)
@@ -577,8 +563,6 @@ static bool push_button_scan_results(int err, struct l_queue *bss_list,
 
 	if (err) {
 		wsc_cancel_scan(wsc);
-		dbus_pending_reply(&wsc->pending,
-					dbus_error_failed(wsc->pending));
 
 		return false;
 	}
@@ -728,8 +712,6 @@ static bool pin_scan_results(int err, struct l_queue *bss_list, void *userdata)
 
 	if (err) {
 		wsc_cancel_scan(wsc);
-		dbus_pending_reply(&wsc->pending,
-					dbus_error_failed(wsc->pending));
 
 		return false;
 	}
@@ -885,134 +867,6 @@ static bool wsc_initiate_scan(struct wsc *wsc,
 	return true;
 }
 
-static struct l_dbus_message *wsc_push_button(struct l_dbus *dbus,
-						struct l_dbus_message *message,
-						void *user_data)
-{
-	struct wsc *wsc = user_data;
-
-	l_debug("");
-
-	if (wsc->pending)
-		return dbus_error_busy(message);
-
-	wsc->station = station_find(netdev_get_ifindex(wsc->netdev));
-	if (!wsc->station)
-		return dbus_error_not_available(message);
-
-	if (!wsc_initiate_scan(wsc, WSC_DEVICE_PASSWORD_ID_PUSH_BUTTON,
-				push_button_scan_results))
-		return dbus_error_failed(message);
-
-	wsc->walk_timer = l_timeout_create(WALK_TIME, walk_timeout, wsc, NULL);
-	wsc->pending = l_dbus_message_ref(message);
-
-	return NULL;
-}
-
-static struct l_dbus_message *wsc_generate_pin(struct l_dbus *dbus,
-						struct l_dbus_message *message,
-						void *user_data)
-{
-	struct wsc *wsc = user_data;
-	struct l_dbus_message *reply;
-	char pin[9];
-
-	l_debug("");
-
-	if (wsc->pending)
-		return dbus_error_busy(message);
-
-	if (!wsc_pin_generate(pin))
-		return dbus_error_failed(message);
-
-	reply = l_dbus_message_new_method_return(message);
-	l_dbus_message_set_arguments(reply, "s", pin);
-
-	return reply;
-}
-
-static struct l_dbus_message *wsc_start_pin(struct l_dbus *dbus,
-						struct l_dbus_message *message,
-						void *user_data)
-{
-	struct wsc *wsc = user_data;
-	const char *pin;
-	enum wsc_device_password_id dpid;
-
-	l_debug("");
-
-	if (wsc->pending)
-		return dbus_error_busy(message);
-
-	wsc->station = station_find(netdev_get_ifindex(wsc->netdev));
-	if (!wsc->station)
-		return dbus_error_not_available(message);
-
-	if (!l_dbus_message_get_arguments(message, "s", &pin))
-		return dbus_error_invalid_args(message);
-
-	if (!wsc_pin_is_valid(pin))
-		return dbus_error_invalid_format(message);
-
-	if (strlen(pin) == 4 || wsc_pin_is_checksum_valid(pin))
-		dpid = WSC_DEVICE_PASSWORD_ID_DEFAULT;
-	else
-		dpid = WSC_DEVICE_PASSWORD_ID_USER_SPECIFIED;
-
-	if (!wsc_initiate_scan(wsc, dpid, pin_scan_results))
-		return dbus_error_failed(message);
-
-	wsc->walk_timer = l_timeout_create(60, pin_timeout, wsc, NULL);
-	wsc->pending = l_dbus_message_ref(message);
-
-	return NULL;
-}
-
-static struct l_dbus_message *wsc_cancel(struct l_dbus *dbus,
-						struct l_dbus_message *message,
-						void *user_data)
-{
-	struct wsc *wsc = user_data;
-	struct l_dbus_message *reply;
-
-	l_debug("");
-
-	if (!wsc->pending)
-		return dbus_error_not_available(message);
-
-	wsc_cancel_scan(wsc);
-
-	if (wsc->station_state_watch) {
-		station_remove_state_watch(wsc->station,
-						wsc->station_state_watch);
-		wsc->station_state_watch = 0;
-		wsc->target = NULL;
-	}
-
-	if (wsc->wsc_association) {
-		int r;
-
-		r = netdev_disconnect(wsc->netdev, wsc_disconnect_cb, wsc);
-		if (r == 0) {
-			wsc->pending_cancel = l_dbus_message_ref(message);
-			return NULL;
-		}
-
-		l_warn("Unable to initiate disconnect: %s", strerror(-r));
-		wsc->wsc_association = false;
-	}
-
-	dbus_pending_reply(&wsc->pending, dbus_error_aborted(wsc->pending));
-
-	reply = l_dbus_message_new_method_return(message);
-	l_dbus_message_set_arguments(reply, "");
-
-	return reply;
-}
-
-static void setup_wsc_interface(struct l_dbus_interface *interface){}
-
 static void wsc_free(void *userdata)
 {
 	struct wsc *wsc = userdata;
@@ -1025,14 +879,6 @@ static void wsc_free(void *userdata)
 		wsc->station_state_watch = 0;
 		wsc->target = NULL;
 	}
-
-	if (wsc->pending)
-		dbus_pending_reply(&wsc->pending,
-					dbus_error_not_available(wsc->pending));
-
-	if (wsc->pending_cancel)
-		dbus_pending_reply(&wsc->pending_cancel,
-				dbus_error_aborted(wsc->pending_cancel));
 
 	if (wsc->eap_settings)
 		l_settings_free(wsc->eap_settings);
