@@ -72,33 +72,6 @@ struct sta_state {
 
 static uint32_t netdev_watch;
 
-static void adhoc_sta_free(void *data)
-{
-	struct sta_state *sta = data;
-
-	if (sta->adhoc->open)
-		goto end;
-
-	if (sta->gtk_query_cmd_id)
-		l_genl_family_cancel(sta->adhoc->nl80211,
-						sta->gtk_query_cmd_id);
-
-	if (sta->sm)
-		eapol_sm_free(sta->sm);
-
-	if (sta->hs_sta)
-		handshake_state_free(sta->hs_sta);
-
-	if (sta->sm_a)
-		eapol_sm_free(sta->sm_a);
-
-	if (sta->hs_auth)
-		handshake_state_free(sta->hs_auth);
-
-end:
-	l_free(sta);
-}
-
 static void adhoc_add_interface(struct netdev *netdev)
 {
 	struct adhoc_state *adhoc;

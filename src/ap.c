@@ -238,38 +238,6 @@ error:
 	ap_del_station(sta, MMPDU_REASON_CODE_UNSPECIFIED, true);
 }
 
-static void ap_gtk_query_cb(struct l_genl_msg *msg, void *user_data)
-{
-	struct sta_state *sta = user_data;
-	const void *gtk_rsc;
-
-	sta->gtk_query_cmd_id = 0;
-
-	gtk_rsc = nl80211_parse_get_key_seq(msg);
-	if (!gtk_rsc)
-		goto error;
-
-	ap_start_rsna(sta, gtk_rsc);
-	return;
-
-error:
-	ap_del_station(sta, MMPDU_REASON_CODE_UNSPECIFIED, true);
-}
-
-static void ap_gtk_op_cb(struct l_genl_msg *msg, void *user_data)
-{
-	if (l_genl_msg_get_error(msg) < 0) {
-		uint8_t cmd = l_genl_msg_get_command(msg);
-		const char *cmd_name =
-			cmd == NL80211_CMD_NEW_KEY ? "NEW_KEY" :
-			cmd == NL80211_CMD_SET_KEY ? "SET_KEY" :
-			"DEL_KEY";
-
-		l_error("%s failed for the GTK: %i",
-			cmd_name, l_genl_msg_get_error(msg));
-	}
-}
-
 static void ap_add_interface(struct netdev *netdev)
 {
 	struct ap_state *ap;
