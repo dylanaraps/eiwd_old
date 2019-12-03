@@ -461,7 +461,7 @@ ell/internal: Makefile
 	$(AM_V_at)$(MKDIR_P) ell
 	$(AM_V_GEN)for f in $(ell_headers) $(ell_sources) ; do \
 		if [ ! -f $$f ] ; then \
-			$(LN_S) -t ell -f $(abs_srcdir)/../ell/$$f ; \
+			$(LN_S) -f $(abs_srcdir)/../ell/$$f $$f ; \
 		fi \
 	done > $@
 
