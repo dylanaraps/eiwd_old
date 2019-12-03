@@ -52,8 +52,6 @@ static uint32_t netdev_watch = 0;
 struct wsc {
 	struct netdev *netdev;
 	struct station *station;
-	struct l_dbus_message *pending;
-	struct l_dbus_message *pending_cancel;
 	uint8_t *wsc_ies;
 	size_t wsc_ies_size;
 	struct l_timeout *walk_timer;
