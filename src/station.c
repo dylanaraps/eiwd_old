@@ -290,9 +290,10 @@ static struct network *station_add_seen_bss(struct station *station,
 	const char *path;
 	char ssid[33];
 
-	l_info("FOUND: %s (%s) - freq: %u, rank: %u, strength: %i",
-			util_ssid_to_utf8(bss->ssid_len, bss->ssid),
+	l_debug("Processing BSS '%s' with SSID: %s, freq: %u, rank: %u, "
+			"strength: %i",
 			util_address_to_string(bss->addr),
+			util_ssid_to_utf8(bss->ssid_len, bss->ssid),
 			bss->frequency, bss->rank, bss->signal_strength);
 
 	if (util_ssid_is_hidden(bss->ssid_len, bss->ssid)) {
@@ -339,7 +340,7 @@ static struct network *station_add_seen_bss(struct station *station,
 
 		l_hashmap_insert(station->networks,
 					network_get_path(network), network);
-		l_debug("Added new Network \"%s\" security %s",
+		l_info("Added new Network \"%s\" security %s",
 			network_get_ssid(network), security_to_str(security));
 	}
 
