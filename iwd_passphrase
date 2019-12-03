@@ -10,9 +10,7 @@
 # Read the password from 'stdin'. This is the simplest
 read -r pass; [ "$pass" ] || exit 1
 
-# Force the same character handling regardless of locale.
-# Doesn't seem to be needed but it's better to have it
-# even if the issue is rare.
+# Consider all characters as single-byte.
 export LC_CTYPE=C
 
 # The SSID appears verbatim in the name if it contains
@@ -21,14 +19,7 @@ export LC_CTYPE=C
 # followed by the lower-case hex encoding of the name.
 case $1 in
     *[!A-Za-z0-9-_' ']*)
-        # Encode the SSID in lowercase HEX using pure
-        # shell. Thanks E5ten.
-        ssid="=$(
-            while [ "$1" ]; do
-                printf '%02x' "'$1"
-                set -- "${1#?}"
-            done
-        )"
+        ssid="=$(printf %s "$1" | od -vA n -t x1 | tr -d '\n ')"
     ;;
 
     *)
