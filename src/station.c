@@ -290,10 +290,9 @@ static struct network *station_add_seen_bss(struct station *station,
 	const char *path;
 	char ssid[33];
 
-	l_debug("Processing BSS '%s' with SSID: %s, freq: %u, rank: %u, "
-			"strength: %i",
-			util_address_to_string(bss->addr),
+	l_info("FOUND: %s (%s) - freq: %u, rank: %u, strength: %i",
 			util_ssid_to_utf8(bss->ssid_len, bss->ssid),
+			util_address_to_string(bss->addr),
 			bss->frequency, bss->rank, bss->signal_strength);
 
 	if (util_ssid_is_hidden(bss->ssid_len, bss->ssid)) {
