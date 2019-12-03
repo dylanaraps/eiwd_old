@@ -1,5 +1,0 @@
-[Match]
-Type=wlan
-
-[Link]
-NamePolicy=keep kernel
