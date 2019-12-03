@@ -86,6 +86,7 @@ static void signal_handler(uint32_t signo, void *user_data)
 	case SIGINT:
 	case SIGTERM:
 		l_info("Terminate");
+		fclose(fopen(l_strdup_printf("%s/current", DAEMON_STORAGEDIR), "w"));
 		iwd_shutdown();
 		break;
 	}
