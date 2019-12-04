@@ -125,7 +125,7 @@ die() {
 }
 
 usage() { printf '%s\n' "\
-iwc 0.1.0 - simple eiwd client.
+iwc 0.2.0 - simple eiwd client.
 
 => [au]th [ssid]
     - Add a new network by creating the
