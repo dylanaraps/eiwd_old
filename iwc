@@ -187,6 +187,9 @@ main() {
         [ -f "$conf" ] ||
             die "Network '$2' not found"
 
+        [ -w "$conf" ] ||
+            die "No write permission to '$2'"
+
         mkdir -p disconnect
     esac
 
