@@ -24,6 +24,13 @@ auth() {
 }
 
 conn() {
+    # A reconnect is triggered by "removing" the
+    # network config file, waiting a short period
+    # and then adding it back.
+    #
+    # 'iwd' watches its configuration directory
+    # so this action causes it to disconnect and
+    # then connect back to the network.
     mv -f "$conf" "$conf.bak"
     sleep 1
     mv -f "$conf.bak" "$conf"
