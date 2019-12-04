@@ -131,7 +131,7 @@ iwc 0.2.0 - simple eiwd client.
     - Add a new network by creating the
     - network configuration file.
     - If the network is in range, [iwd]
-    - will attempt to connect.
+    - will attempt to connect to it.
 
 => [co]nnect [ssid]
     - Connect to an SSID.
@@ -140,8 +140,10 @@ iwc 0.2.0 - simple eiwd client.
 => [de]lete [ssid]
     - Delete a network's conf file.
 
-=> [di]sconnect [ssid]
-    - Disconnect from SSID.
+=> [di]sconnect
+    - Disconnect from the current
+    - network and disable autoconnect
+    - for this session.
 
 => [li]st
     - List all configured networks.
