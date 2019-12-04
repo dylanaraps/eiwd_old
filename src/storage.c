@@ -50,6 +50,8 @@
 
 static char *storage_path = NULL;
 static char *storage_hotspot_path = NULL;
+static char *storage_disconnect_path = NULL;
+static char *storage_data_path = NULL;
 
 static int create_dirs(const char *filename)
 {
@@ -189,6 +191,8 @@ bool storage_create_dirs(void)
 
 	storage_path = l_strdup(state_dirs[0]);
 	storage_hotspot_path = l_strdup_printf("%s/hotspot/", state_dirs[0]);
+	storage_disconnect_path = l_strdup_printf("%s/disconnect/", state_dirs[0]);
+	storage_data_path = l_strdup_printf("%s/data/", state_dirs[0]);
 	l_strv_free(state_dirs);
 
 	if (create_dirs(storage_path)) {
@@ -201,6 +205,16 @@ bool storage_create_dirs(void)
 		return false;
 	}
 
+	if (create_dirs(storage_disconnect_path)) {
+		l_error("Failed to create %s", storage_disconnect_path);
+		return false;
+	}
+
+	if (create_dirs(storage_data_path)) {
+		l_error("Failed to create %s", storage_data_path);
+		return false;
+	}
+
 	return true;
 }
 
@@ -208,6 +222,8 @@ void storage_cleanup_dirs(void)
 {
 	l_free(storage_path);
 	l_free(storage_hotspot_path);
+	l_free(storage_disconnect_path);
+	l_free(storage_data_path);
 }
 
 char *storage_get_path(const char *format, ...)
