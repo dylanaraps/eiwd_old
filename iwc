@@ -2,16 +2,13 @@
 #
 # Simple iwd client.
 
-# Disable this warning as 'sread()' dynamically
-# declares the 'pass' variable.
-# shellcheck disable=2154
 auth() {
     [ -f "$ssid.psk" ] &&
         die "Network already configured"
 
     sread pass 'Enter password'
 
-    [ "$pass" ] ||
+    [ "${pass?}" ] ||
         die "Password is blank"
 
     printf '[Security]\nPassphrase=%s\n' "$pass" > "$ssid.psk"
