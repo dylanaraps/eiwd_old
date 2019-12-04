@@ -133,7 +133,7 @@ ell_libell_internal_la_SOURCES = $(ell_headers) $(ell_sources)
 endif
 
 bin_PROGRAMS =
-bin_SCRIPTS = iwd_passphrase
+bin_SCRIPTS = iwd_passphrase iwc
 libexec_PROGRAMS =
 noinst_PROGRAMS =
 
