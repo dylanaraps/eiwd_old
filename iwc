@@ -21,16 +21,17 @@ auth() {
 }
 
 conn() {
-    # A reconnect is triggered by "removing" the
-    # network config file, waiting a short period
-    # and then adding it back.
-    #
-    # 'iwd' watches its configuration directory
-    # so this action causes it to disconnect and
-    # then connect back to the network.
-    mv -f "$conf" "$conf.bak"
-    sleep 1
-    mv -f "$conf.bak" "$conf"
+    case $conf in
+        ./disconnected/*)
+            mv -f "$conf" "${conf##*/}"
+        ;;
+
+        *)
+            mv -f "$conf" "$conf.bak"
+            sleep 1
+            mv -f "$conf.bak" "$conf"
+        ;;
+    esac
 
     log "Requested connection to '$1'"
 }
@@ -39,6 +40,10 @@ dele() {
     rm -f "$conf"
 
     log "Deleted network '$1'"
+}
+
+disc() {
+    mv -f "$conf" disconnected
 }
 
 list() {
@@ -50,7 +55,10 @@ list() {
     # internal function and glob expansions
     # are always treated as files.
     # shellcheck disable=2035
-    find_network *.psk *.open *.8021x
+    find . -type f \
+        -name '*.psk'  -o \
+        -name '*.open' -o \
+        -name '*.8021x'
 }
 
 scan() {
@@ -85,12 +93,11 @@ ssid_encode() {
 find_network() {
     set +f
 
-    for file; do
-        [ -f "$file" ] && {
-            printf '%s\n' "$file"
-            break
-        }
-    done
+    find . -type f \
+        -name "$1.psk"  -o \
+        -name "$1.open" -o \
+        -name "$1.8021x" |
+        grep -m1 .
 
     set -f
 }
@@ -173,17 +180,19 @@ main() {
     case $1 in
         de*|di*|co*)
 
-        conf=$(find_network "$ssid.psk" "$ssid.open" "$ssid.8021x")
+        conf=$(find_network "$ssid")
 
         [ -f "$conf" ] ||
             die "Network '$2' not found"
+
+        mkdir -p disconnected
     esac
 
     case $1 in
         au*) auth "$2" ;;
         co*) conn "$2" ;;
         de*) dele "$2" ;;
-        di*) log "Not yet implemented" ;;
+        di*) disc "$2" ;;
         li*) list ;;
         ss*) ssid ;;
         sc*) scan ;;
