@@ -1,13 +1,14 @@
 eiwd - iwd without dbus
 -----------
 
+STATUS
+
+* Daemon works without DBUS.
+* Simple client implemented (iwc).
+
 GOALS
 
-* Get the daemon to function using config files (No iwctl and friends). DONE
 * Implement IPC between clients without DBUS. SOON(TM)
-
-VOLUNTEERS WELCOME
-
 * Bring 'wired/' back into tree and get it to function without DBUS.
 
 
@@ -21,6 +22,38 @@ BUILDING
     make install
 
 
+IWC
+
+    iwc 0.1.0 - simple eiwd client.
+
+    => [au]th [ssid]
+        - Add a new network by creating the
+        - network configuration file.
+        - Afterwards run [iwc] [conn] [ssid]
+        - to connect to the network.
+
+    => [co]nnect [ssid]
+        - Connect to an SSID.
+        - Reconnect to SSID.
+
+    => [de]lete [ssid]
+        - Delete a network's conf file.
+
+    => [di]sconnect [ssid]
+        - Disconnect from SSID.
+
+    => [li]st
+        - List all configured networks.
+
+    => [sc]an
+        - Show scan results.
+        - These results are updated by the
+        - [iwd] daemon periodically.
+
+    => [ss]id
+        - Show connected network SSID.
+
+
 SYSTEM-WIDE CONFIG (/etc/iwd/main.conf)
 
     [General]
@@ -31,7 +64,7 @@ SYSTEM-WIDE CONFIG (/etc/iwd/main.conf)
     NameResolvingService=resolvconf
 
 
-PER-NETWORK CONFIGS (/var/lib/iwd/ssid.psk) (or use iwd_passphrase)
+PER-NETWORK CONFIGS (/var/lib/iwd/ssid.psk) (or use iwc / iwd_passphrase)
 
     [Security]
     Passphrase=password
