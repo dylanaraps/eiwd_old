@@ -14,10 +14,7 @@ auth() {
     [ "$pass" ] ||
         die "Password is blank"
 
-    cat > "$ssid.psk" <<-EOF
-		[Security]
-		Passphrase=$pass
-	EOF
+    printf '[Security]\nPassphrase=%s\n' "$pass" > "$ssid.psk"
 
     log "Saved configuration to $PWD/$ssid.psk" \
         "Run 'iwc connect $1' to connect"
