@@ -329,7 +329,8 @@ static struct network *station_add_seen_bss(struct station *station,
 
 	path = iwd_network_get_path(station, ssid, security);
 
-    FILE *fp = fopen(l_strdup_printf("%s/scan", DAEMON_STORAGEDIR), "a");
+    char *scan_file = l_strdup_printf("%s/scan", DAEMON_STORAGEDIR);
+    FILE *fp = fopen(scan_file, "a");
     if (fp) {
         fprintf(fp, "%s\t%s\t%s\t%u\t%u\t%i\n",
             util_ssid_to_utf8(bss->ssid_len, bss->ssid),
@@ -340,6 +341,7 @@ static struct network *station_add_seen_bss(struct station *station,
             bss->signal_strength);
         fclose(fp);
     }
+    l_free(scan_file);
 
 	network = l_hashmap_lookup(station->networks, path);
 	if (!network) {
