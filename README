@@ -30,8 +30,8 @@ IWC
     => [au]th [ssid]
         - Add a new network by creating the
         - network configuration file.
-        - Afterwards run [iwc] [conn] [ssid]
-        - to connect to the network.
+        - If the network is in range, [iwd]
+        - will attempt to connect.
 
     => [co]nnect [ssid]
         - Connect to an SSID.
