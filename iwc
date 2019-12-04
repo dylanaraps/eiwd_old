@@ -45,7 +45,13 @@ dele() {
 list() {
     log "Currently configured networks" >&2
 
-    find_network
+    set +f
+
+    # Disable this warning as the this is an
+    # internal function and glob expansions
+    # are always treated as files.
+    # shellcheck disable=2035
+    find_network *.psk *.open *.8021x
 }
 
 scan() {
@@ -79,12 +85,6 @@ ssid_encode() {
 
 find_network() {
     set +f
-
-    if [ "$1" ]; then
-        set -- "$1.psk" "$1.open" "$1.8021x"
-    else
-        set -- *.psk *.open *.8021x
-    fi
 
     for file; do
         [ -f "$file" ] && {
@@ -172,7 +172,7 @@ main() {
     case $1 in
         de*|di*|co*)
 
-        conf=$(find_network "$ssid")
+        conf=$(find_network "$ssid.psk" "$ssid.open" "$ssid.8021x")
 
         [ -f "$conf" ] ||
             die "Network '$2' not found"
