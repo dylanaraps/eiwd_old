@@ -1,10 +1,11 @@
 eiwd - iwd without dbus
 -----------
 
-STATUS
+STATUS (GUTTED AND SOMEWHAT HACKY)
 
 * Daemon works without DBUS.
 * Simple client implemented (iwc).
+* Simple tool added (iwd_passphrase).
 
 GOALS
 
