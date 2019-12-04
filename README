@@ -9,7 +9,7 @@ STATUS (GUTTED AND SOMEWHAT HACKY)
 
 GOALS
 
-* Implement IPC between clients without DBUS. SOON(TM)
+* Implement our own full client in C using a different IPC.
 * Bring 'wired/' back into tree and get it to function without DBUS.
 
 
