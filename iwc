@@ -63,7 +63,7 @@ ssid() {
         read -r ssid < current
         printf 'Connected to: %s\n' "$ssid"
     else
-        printf 'Not currently connected\n'
+        die 'Not currently connected'
     fi
 }
 
@@ -161,12 +161,14 @@ main() {
         die "cannot access $IWD_DIR"
 
     case $1 in
-        au*|de*|di*|co*)
+        au*|de*|co*)
+            [ "$2" ] ||
+                die "Missing [ssid] argument"
 
-        [ "$2" ] ||
-            die "Missing [ssid] argument"
+            ssid=$(ssid_encode "$2")
+        ;;
 
-        ssid=$(ssid_encode "$2")
+        di*) ssid >/dev/null ;;
     esac
 
     case $1 in
