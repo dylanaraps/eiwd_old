@@ -43,22 +43,17 @@ dele() {
 }
 
 disc() {
-    mv -f "$conf" disconnect
+    mv -f "$conf" disconnect/
+
+    : > data/current
+
+    log "Disconnected from '$ssid'"
 }
 
 list() {
     log "Currently configured networks" >&2
 
-    set +f
-
-    # Disable this warning as the this is an
-    # internal function and glob expansions
-    # are always treated as files.
-    # shellcheck disable=2035
-    find . -type f \
-        -name '*.psk'  -o \
-        -name '*.open' -o \
-        -name '*.8021x'
+    find_network
 }
 
 scan() {
@@ -75,7 +70,7 @@ scan() {
 ssid() {
     if [ -s data/current ]; then
         read -r ssid < data/current
-        printf 'Connected to: %s\n' "$ssid"
+        log "Connected to '$ssid'"
     else
         die 'Not currently connected'
     fi
@@ -101,9 +96,9 @@ find_network() {
     set +f
 
     find . -type f \
-        -name "$1.psk"  -o \
-        -name "$1.open" -o \
-        -name "$1.8021x" |
+        -name "${1:-*}.psk"  -o \
+        -name "${1:-*}.open" -o \
+        -name "${1:-*}.8021x" |
         grep -m1 .
 
     set -f
@@ -131,7 +126,7 @@ die() {
     exit 1
 }
 
-usage() { printf '%s\n' "\
+help() { printf '%s\n' "\
 iwc 0.2.0 - simple eiwd client.
 
 => [au]th [ssid]
@@ -204,11 +199,11 @@ main() {
         au*) auth "$2" ;;
         co*) conn "$2" ;;
         de*) dele "$2" ;;
-        di*) disc "$2" ;;
+        di*) disc ;;
         li*) list ;;
         ss*) ssid ;;
         sc*) scan ;;
-        *)   usage ;;
+        *)   help ;;
     esac
 }
 
