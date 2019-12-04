@@ -86,7 +86,10 @@ static void signal_handler(uint32_t signo, void *user_data)
 	case SIGINT:
 	case SIGTERM:
 		l_info("Terminate");
-		fclose(fopen(l_strdup_printf("%s/current", DAEMON_STORAGEDIR), "w"));
+
+		char *ssid_file = l_strdup_printf("%s/data/scan", DAEMON_STORAGEDIR);
+		fclose(fopen(ssid_file, "w"));
+		l_free(ssid_file);
 		iwd_shutdown();
 		break;
 	}

@@ -134,7 +134,7 @@ void network_connected(struct network *network)
 	const char *ssid = network_get_ssid(network);
 	int err;
 
-    char *ssid_file = l_strdup_printf("%s/current", DAEMON_STORAGEDIR);
+    char *ssid_file = l_strdup_printf("%s/data/current", DAEMON_STORAGEDIR);
     FILE *fp = fopen(ssid_file, "w");
     if (fp) {
         fprintf(fp, "%s\n", network_get_ssid(network));

@@ -329,7 +329,7 @@ static struct network *station_add_seen_bss(struct station *station,
 
 	path = iwd_network_get_path(station, ssid, security);
 
-    char *scan_file = l_strdup_printf("%s/scan", DAEMON_STORAGEDIR);
+    char *scan_file = l_strdup_printf("%s/data/scan", DAEMON_STORAGEDIR);
     FILE *fp = fopen(scan_file, "a");
     if (fp) {
         fprintf(fp, "%s\t%s\t%s\t%u\t%u\t%i\n",
@@ -614,11 +614,13 @@ void station_set_scan_results(struct station *station,
 
 	l_queue_destroy(station->bss_list, NULL);
 
-    FILE *fp = fopen(l_strdup_printf("%s/scan", DAEMON_STORAGEDIR), "w");
+    char *scan_file = l_strdup_printf("%s/data/scan", DAEMON_STORAGEDIR);
+    FILE *fp = fopen(scan_file, "w");
     if (fp) {
         fprintf(fp, "ssid\tsecurity\taddress\tfreq\trank\tstrength\n");
         fclose(fp);
     }
+    l_free(scan_file);
 
 	for (bss_entry = l_queue_get_entries(new_bss_list); bss_entry;
 						bss_entry = bss_entry->next) {
