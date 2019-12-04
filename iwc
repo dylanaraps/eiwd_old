@@ -200,6 +200,6 @@ set -f
 
 # Ensure that we leave the terminal in a usable
 # state on exit or Ctrl+C.
-trap 'stty echo icanon' INT EXIT
+trap 'stty echo' INT EXIT
 
 main "$@"
