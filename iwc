@@ -44,7 +44,7 @@ disc() {
 
     : > data/current
 
-    log "Disconnected from '$ssid'"
+    log "Disconnected from '$current'"
 }
 
 list() {
@@ -66,8 +66,9 @@ scan() {
 
 ssid() {
     if [ -s data/current ]; then
-        read -r ssid < data/current
-        log "Connected to '$ssid'"
+        read -r current < data/current
+
+        log "Connected to '$current'"
     else
         die 'Not currently connected'
     fi
@@ -80,11 +81,11 @@ ssid_encode() {
     # followed by the lower-case hex encoding of the name.
     case $1 in
         *[!A-Za-z0-9-_' ']*)
-            printf %s "$1" | od -vA n -t x1 | tr -d '\n '
+            ssid="=$(printf %s "$1" | od -vA n -t x1 | tr -d '\n ')"
         ;;
 
         *)
-            printf %s "$1"
+            ssid=$1
         ;;
     esac
 }
@@ -172,10 +173,13 @@ main() {
             [ "$2" ] ||
                 die "Missing [ssid] argument"
 
-            ssid=$(ssid_encode "$2")
+            ssid_encode "$2"
         ;;
 
-        di*) ssid >/dev/null ;;
+        di*)
+            ssid >/dev/null
+            ssid_encode "$current"
+        ;;
     esac
 
     case $1 in
