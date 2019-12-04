@@ -62,7 +62,14 @@ list() {
 }
 
 scan() {
-    [ -f data/scan ] && cat data/scan
+    [ -s data/scan ] ||
+        die "No networks found"
+
+    if command -v column >/dev/null 2>&1; then
+        column -ts "$(printf '\t')" < data/scan
+    else
+        cat data/scan
+    fi
 }
 
 ssid() {
