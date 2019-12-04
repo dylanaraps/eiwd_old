@@ -29,6 +29,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <signal.h>
+#include <dirent.h>
 #include <ell/ell.h>
 
 #include "linux/nl80211.h"
@@ -63,8 +64,50 @@ static void main_loop_quit(struct l_timeout *timeout, void *user_data)
 	l_main_quit();
 }
 
+static void clean_disconnect(void) {
+     struct dirent *dp;
+     DIR *dfd;
+     char *dir = l_strdup_printf("%s/disconnect", DAEMON_STORAGEDIR);
+
+     if ((dfd = opendir(dir)) == NULL)
+         return;
+
+     while ((dp = readdir(dfd)) != NULL) {
+         if (dp->d_type != DT_REG)
+             continue;
+
+         const char *ext = strrchr(dp->d_name, '.');
+
+         if ((!ext) || (ext == dp->d_name))
+             continue;
+
+         if ((strcmp(ext, ".psk") == 0) ||
+            (strcmp(ext, ".open") == 0) ||
+            (strcmp(ext, ".8021x") == 0)) {
+
+             char *path  = l_strdup_printf("%s/%s",
+                     dir, dp->d_name);
+             char *npath = l_strdup_printf("%s/%s",
+                     DAEMON_STORAGEDIR, dp->d_name);
+
+             rename(path, npath);
+
+             l_free(path);
+             l_free(npath);
+         }
+     }
+
+     l_free(dir);
+}
+
 static void iwd_shutdown(void)
 {
+	char *ssid_file = l_strdup_printf("%s/data/scan", DAEMON_STORAGEDIR);
+	fclose(fopen(ssid_file, "w"));
+	l_free(ssid_file);
+
+	clean_disconnect();
+
 	if (terminating)
 		return;
 
@@ -86,10 +129,6 @@ static void signal_handler(uint32_t signo, void *user_data)
 	case SIGINT:
 	case SIGTERM:
 		l_info("Terminate");
-
-		char *ssid_file = l_strdup_printf("%s/data/scan", DAEMON_STORAGEDIR);
-		fclose(fopen(ssid_file, "w"));
-		l_free(ssid_file);
 		iwd_shutdown();
 		break;
 	}
@@ -442,6 +481,7 @@ int main(int argc, char *argv[])
 	if (getenv("IWD_GENL_DEBUG"))
 		l_genl_set_debug(genl, do_debug, "[GENL] ", NULL);
 
+	clean_disconnect();
 	l_genl_request_family(genl, NL80211_GENL_NAME, nl80211_appeared,
 				NULL, NULL);
 
