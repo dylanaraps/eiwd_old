@@ -14,12 +14,7 @@ auth() {
     [ "$pass" ] ||
         die "Password is blank"
 
-    # TODO: Figure out autoconnect in relation
-    #       to disconnection.
     cat > "$ssid.psk" <<-EOF
-		[Settings]
-		AutoConnect=false
-
 		[Security]
 		Passphrase=$pass
 	EOF
