@@ -185,7 +185,7 @@ main() {
         [ -f "$conf" ] ||
             die "Network '$2' not found"
 
-        mkdir -p disconnected
+        mkdir -p disconnect
     esac
 
     case $1 in
