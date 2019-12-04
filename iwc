@@ -1,0 +1,202 @@
+#!/bin/sh
+#
+# Simple iwd client.
+
+# Disable this warning as 'sread()' dynamically
+# declares the 'pass' variable.
+# shellcheck disable=2154
+auth() {
+    [ -f "$ssid.psk" ] &&
+        die "Network already configured"
+
+    sread pass 'Enter password'
+
+    [ "$pass" ] ||
+        die "Password is blank"
+
+    # TODO: Figure out autoconnect in relation
+    #       to disconnection.
+    cat > "$ssid.psk" <<-EOF
+		[Settings]
+		AutoConnect=false
+
+		[Security]
+		Passphrase=$pass
+	EOF
+
+    log "Saved configuration to $PWD/$ssid.psk" \
+        "Run 'iwc connect $1' to connect"
+}
+
+conn() {
+    mv -f "$conf" "$conf.bak"
+    sleep 1
+    mv -f "$conf.bak" "$conf"
+
+    log "Requested connection to '$1'"
+}
+
+dele() {
+    rm -f "$conf"
+
+    log "Deleted network '$1'"
+}
+
+list() {
+    log "Currently configured networks" >&2
+
+    find_network
+}
+
+scan() {
+    [ -f scan ] && cat scan
+}
+
+ssid() {
+    if [ -s current ]; then
+        read -r ssid < current
+        printf 'Connected to: %s\n' "$ssid"
+    else
+        printf 'Not currently connected\n'
+    fi
+}
+
+ssid_encode() {
+    # The SSID appears verbatim in the name if it contains
+    # only alphanumeric characters, spaces, underscores or
+    # minus signs. Otherwise it is encoded as an equal sign
+    # followed by the lower-case hex encoding of the name.
+    case $1 in
+        *[!A-Za-z0-9-_' ']*)
+            printf %s "$1" | od -vA n -t x1 | tr -d '\n '
+        ;;
+
+        *)
+            printf %s "$1"
+        ;;
+    esac
+}
+
+find_network() {
+    set +f
+
+    if [ "$1" ]; then
+        set -- "$1.psk" "$1.open" "$1.8021x"
+    else
+        set -- *.psk *.open *.8021x
+    fi
+
+    for file; do
+        [ -f "$file" ] && {
+            printf '%s\n' "$file"
+            break
+        }
+    done
+
+    set -f
+}
+
+sread() {
+    printf '%s: ' "$2"
+
+    # Disable terminal printing while the user inputs their
+    # password. POSIX 'read' has no '-s' flag which would
+    # effectively do the same thing.
+    stty -echo
+    read -r "$1"
+    stty echo
+
+    printf '\n'
+}
+
+log() {
+    printf '=> %s\n' "$@"
+}
+
+die() {
+    printf 'error: %s\n' "$@" >&2
+    exit 1
+}
+
+usage() { printf '%s\n' "\
+iwc 0.1.0 - simple eiwd client.
+
+=> [au]th [ssid]
+    - Add a new network by creating the
+    - network configuration file.
+    - Afterwards run [iwc] [conn] [ssid]
+    - to connect to the network.
+
+=> [co]nnect [ssid]
+    - Connect to an SSID.
+    - Reconnect to SSID.
+
+=> [de]lete [ssid]
+    - Delete a network's conf file.
+
+=> [di]sconnect [ssid]
+    - Disconnect from SSID.
+
+=> [sc]an
+    - Show scan results.
+    - These results are updated by the
+    - [iwd] daemon periodically.
+
+=> [ss]id
+    - Show connected network SSID.
+"
+}
+
+main() {
+    : "${IWD_DIR:=/var/lib/iwd}"
+
+    [ -w "$IWD_DIR" ] ||
+        die 'iwc needs to be run as root' \
+            'or given rwx in /var/lib/iwd'
+
+    cd "$IWD_DIR" ||
+        die "cannot access $IWD_DIR"
+
+    case $1 in
+        au*|de*|di*|co*)
+
+        [ "$2" ] ||
+            die "Missing [ssid] argument"
+
+        ssid=$(ssid_encode "$2")
+    esac
+
+    case $1 in
+        de*|di*|co*)
+
+        conf=$(find_network "$ssid")
+
+        [ -f "$conf" ] ||
+            die "Network '$2' not found"
+    esac
+
+    case $1 in
+        au*) auth "$2" ;;
+        co*) conn "$2" ;;
+        de*) dele "$2" ;;
+        di*) log "Not yet implemented" ;;
+        li*) list ;;
+        ss*) ssid ;;
+        sc*) scan ;;
+        *)   usage ;;
+    esac
+}
+
+# Ensure that debug mode is never enabled to
+# prevent the password from leaking.
+set +x
+
+# Ensure that globbing is globally disabled
+# to avoid insecurities with word-splitting.
+set -f
+
+# Ensure that we leave the terminal in a usable
+# state on exit or Ctrl+C.
+trap 'stty echo icanon' INT EXIT
+
+main "$@"
