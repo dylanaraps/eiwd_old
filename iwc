@@ -137,6 +137,9 @@ iwc 0.1.0 - simple eiwd client.
 => [di]sconnect [ssid]
     - Disconnect from SSID.
 
+=> [li]st
+    - List all configured networks.
+
 => [sc]an
     - Show scan results.
     - These results are updated by the
