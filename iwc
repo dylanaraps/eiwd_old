@@ -22,7 +22,7 @@ auth() {
 
 conn() {
     case $conf in
-        ./disconnected/*)
+        ./disconnect/*)
             mv -f "$conf" "${conf##*/}"
         ;;
 
@@ -43,7 +43,7 @@ dele() {
 }
 
 disc() {
-    mv -f "$conf" disconnected
+    mv -f "$conf" disconnect
 }
 
 list() {
@@ -62,12 +62,12 @@ list() {
 }
 
 scan() {
-    [ -f scan ] && cat scan
+    [ -f data/scan ] && cat data/scan
 }
 
 ssid() {
-    if [ -s current ]; then
-        read -r ssid < current
+    if [ -s data/current ]; then
+        read -r ssid < data/current
         printf 'Connected to: %s\n' "$ssid"
     else
         die 'Not currently connected'
