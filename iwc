@@ -18,17 +18,14 @@ auth() {
 }
 
 conn() {
-    case $conf in
-        ./disconnect/*)
-            mv -f "$conf" "${conf##*/}"
-        ;;
+    if [ -z "${conf##./disconnect/*}" ]; then
+        mv -f "$conf" "${conf##*/}"
 
-        *)
-            mv -f "$conf" "$conf.bak"
-            sleep 1
-            mv -f "$conf.bak" "$conf"
-        ;;
-    esac
+    else
+        mv -f "$conf" "$conf.bak"
+        sleep 1
+        mv -f "$conf.bak" "$conf"
+    fi
 
     log "Requested connection to '$1'"
 }
