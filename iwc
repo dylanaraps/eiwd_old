@@ -32,6 +32,10 @@ disc() {
     mv -f "$conf" disconnect/
 }
 
+edit() {
+    "${EDITOR:-vi}" "$conf"
+}
+
 list() {
     log "Currently configured networks" >&2
 
@@ -135,6 +139,10 @@ iwc 0.2.0 - simple eiwd client.
     - network and disable autoconnect
     - for this session.
 
+=> [ed]it [ssid]
+    - Open a network's config file.
+    - Uses '${EDITOR:-vi}'.
+
 => [li]st
     - List all configured networks.
 
@@ -159,7 +167,7 @@ main() {
         die "cannot access $IWD_DIR"
 
     case $1 in
-        au*|de*|co*)
+        au*|co*|de*|ed*)
             [ "$2" ] || die "Missing [ssid] argument"
 
             ssid_encode "$2"
@@ -172,7 +180,7 @@ main() {
     esac
 
     case $1 in
-        de*|di*|co*)
+        co*|de*|di*|ed*)
 
         conf=$(find_network "$ssid" | grep -m 1 .)
 
@@ -187,6 +195,7 @@ main() {
         co*) conn; log "Requested connection to '$2'" ;;
         de*) dele; log "Deleted network '$2'" ;;
         di*) disc; log "Disconnected from '$current'" ;;
+        ed*) edit ;;
         li*) list ;;
         ss*) ssid; log "Connected to '$current'" ;;
         sc*) scan ;;
