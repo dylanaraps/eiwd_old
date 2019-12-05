@@ -103,6 +103,10 @@ find_network() {
 sread() {
     printf '%s: ' "$2"
 
+    # Ensure that we leave the terminal in a usable
+    # state on exit or Ctrl+C.
+    trap 'stty echo' INT EXIT
+
     # Disable terminal printing while the user inputs their
     # password. POSIX 'read' has no '-s' flag which would
     # effectively do the same thing.
@@ -213,9 +217,5 @@ set +x
 # Ensure that globbing is globally disabled
 # to avoid insecurities with word-splitting.
 set -f
-
-# Ensure that we leave the terminal in a usable
-# state on exit or Ctrl+C.
-trap 'stty echo' INT EXIT
 
 main "$@"
