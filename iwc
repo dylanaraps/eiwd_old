@@ -82,14 +82,10 @@ ssid_encode() {
 }
 
 find_network() {
-    set +f
-
     find . -type f \
         -name "${1:-*}.psk"  -o \
         -name "${1:-*}.open" -o \
         -name "${1:-*}.8021x"
-
-    set -f
 }
 
 sread() {
