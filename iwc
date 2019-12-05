@@ -20,11 +20,9 @@ conn() {
             mv -f "$conf" "${conf##*/}"
         ;;
 
-        *)
-            mv -f "$conf" "$conf.bak"
+        *)  mv -f "$conf" "$conf.bak"
             sleep 1
             mv -f "$conf.bak" "$conf"
-        ;;
     esac
 }
 
@@ -82,9 +80,7 @@ ssid_encode() {
             ssid="=$(printf %s "$1" | od -vA n -t x1 | tr -d '\n ')"
         ;;
 
-        *)
-            ssid=$1
-        ;;
+        *)  ssid=$1
     esac
 }
 
