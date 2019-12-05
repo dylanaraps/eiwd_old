@@ -9,7 +9,7 @@ auth() {
 
     # Ensure that we leave the terminal in a usable
     # state on exit or Ctrl+C.
-    trap 'stty echo' INT EXIT
+    trap 'stty echo' INT
 
     # Disable terminal printing while the user inputs their
     # password. POSIX 'read' has no '-s' flag which would
