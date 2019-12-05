@@ -12,9 +12,6 @@ auth() {
         die "Password is blank"
 
     printf '[Security]\nPassphrase=%s\n' "$pass" > "$ssid.psk"
-
-    log "Saved configuration to $PWD/$ssid.psk" \
-        "Requested auth with iwd (if SSID exists)"
 }
 
 conn() {
@@ -29,20 +26,14 @@ conn() {
             mv -f "$conf.bak" "$conf"
         ;;
     esac
-
-    log "Requested connection to '$1'"
 }
 
 dele() {
     rm -f "$conf"
-
-    log "Deleted network '$1'"
 }
 
 disc() {
     mv -f "$conf" disconnect/
-
-    log "Disconnected from '$current'"
 }
 
 list() {
@@ -79,8 +70,6 @@ scan() {
 ssid() {
     read -r current 2>/dev/null < data/current ||
         die 'Not currently connected'
-
-    log "Connected to '$current'"
 }
 
 ssid_encode() {
@@ -186,7 +175,7 @@ main() {
         ;;
 
         di*)
-            ssid >/dev/null
+            ssid
             ssid_encode "$current"
         ;;
     esac
@@ -206,12 +195,12 @@ main() {
     esac
 
     case $1 in
-        au*) auth "$2" ;;
-        co*) conn "$2" ;;
-        de*) dele "$2" ;;
-        di*) disc ;;
+        au*) auth; log "Saved configuration to $PWD/$ssid.psk" ;;
+        co*) conn; log "Requested connection to '$2'" ;;
+        de*) dele; log "Deleted network '$2'" ;;
+        di*) disc; log "Disconnected from '$current'" ;;
         li*) list ;;
-        ss*) ssid ;;
+        ss*) ssid; log "Connected to '$current'" ;;
         sc*) scan ;;
         *)   help ;;
     esac
