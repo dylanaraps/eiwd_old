@@ -61,13 +61,13 @@ scan() {
     #
     # This sets the field width of the SSID to the length
     # of the longest SSID.
-    while read -r ssid _ || [ "$ssid" ]; do
+    while read -r ssid _; do
         [ "${#ssid}" -gt "${len:-0}" ] && len=${#ssid}
     done < data/scan
 
     # Parse the file and print it as an aligned table. This
     # is rather easy as the max widths of each field are known.
-    while read -r ssid sec adr frq rnk stn || [ "$ssid" ]; do
+    while read -r ssid sec adr frq rnk stn; do
         printf '%-*s  %-8s  %-17s  %-4s  %-4s  %8s\n' \
             "$len" "$ssid" "$sec" "$adr" "$frq" "$rnk" "$stn"
     done < data/scan
