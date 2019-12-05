@@ -42,8 +42,6 @@ dele() {
 disc() {
     mv -f "$conf" disconnect/
 
-    : > data/current
-
     log "Disconnected from '$current'"
 }
 

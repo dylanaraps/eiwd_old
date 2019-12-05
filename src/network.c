@@ -171,6 +171,10 @@ void network_connected(struct network *network)
 
 void network_disconnected(struct network *network)
 {
+	char *ssid_file = l_strdup_printf("%s/data/current", DAEMON_STORAGEDIR);
+	fclose(fopen(ssid_file, "w"));
+	l_free(ssid_file);
+
 	network_settings_close(network);
 }
 

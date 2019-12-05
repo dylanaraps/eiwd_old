@@ -102,9 +102,9 @@ static void clean_disconnect(void) {
 
 static void iwd_shutdown(void)
 {
-	char *ssid_file = l_strdup_printf("%s/data/scan", DAEMON_STORAGEDIR);
-	fclose(fopen(ssid_file, "w"));
-	l_free(ssid_file);
+	char *scan_file = l_strdup_printf("%s/data/scan", DAEMON_STORAGEDIR);
+	fclose(fopen(scan_file, "w"));
+	l_free(scan_file);
 
 	clean_disconnect();
 
