@@ -191,4 +191,4 @@ main() {
     esac
 }
 
-[ "$1" ] || help && main "$@"
+main "$@"
