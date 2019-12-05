@@ -3,13 +3,11 @@
 # Simple iwd client.
 
 auth() {
-    [ -f "$ssid.psk" ] &&
-        die "Network already configured"
+    [ -f "$ssid.psk" ] && die "Network already configured"
 
     sread pass 'Enter password'
 
-    [ "${pass?}" ] ||
-        die "Password is blank"
+    [ "${pass?}" ] || die "Password is blank"
 
     printf '[Security]\nPassphrase=%s\n' "$pass" > "$ssid.psk"
 }
@@ -41,8 +39,7 @@ list() {
 }
 
 scan() {
-    [ -s data/scan ] ||
-        die "No networks found"
+    [ -s data/scan ] || die "No networks found"
 
     # Set IFS to the table's field separator (TAB).
     IFS='	'
@@ -168,8 +165,7 @@ main() {
 
     case $1 in
         au*|de*|co*)
-            [ "$2" ] ||
-                die "Missing [ssid] argument"
+            [ "$2" ] || die "Missing [ssid] argument"
 
             ssid_encode "$2"
         ;;
@@ -185,11 +181,8 @@ main() {
 
         conf=$(find_network "$ssid")
 
-        [ -f "$conf" ] ||
-            die "Network '$2' not found"
-
-        [ -w "$conf" ] ||
-            die "No write permission to '$2'"
+        [ -f "$conf" ] || die "Network '$2' not found"
+        [ -w "$conf" ] || die "No write permission to '$2'"
 
         mkdir -p disconnect
     esac
