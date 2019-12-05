@@ -18,14 +18,17 @@ auth() {
 }
 
 conn() {
-    if [ -z "${conf##./disconnect/*}" ]; then
-        mv -f "$conf" "${conf##*/}"
+    case $conf in
+        ./disconnect/*)
+            mv -f "$conf" "${conf##*/}"
+        ;;
 
-    else
-        mv -f "$conf" "$conf.bak"
-        sleep 1
-        mv -f "$conf.bak" "$conf"
-    fi
+        *)
+            mv -f "$conf" "$conf.bak"
+            sleep 1
+            mv -f "$conf.bak" "$conf"
+        ;;
+    esac
 
     log "Requested connection to '$1'"
 }
@@ -62,7 +65,7 @@ scan() {
     # This sets the field width of the SSID to the length
     # of the longest SSID.
     while read -r ssid _; do
-        [ "${#ssid}" -gt "${len:-0}" ] && len=${#ssid}
+        len=$((${#ssid} > len ? ${#ssid} : len))
     done < data/scan
 
     # Parse the file and print it as an aligned table. This
@@ -85,11 +88,15 @@ ssid_encode() {
     # only alphanumeric characters, spaces, underscores or
     # minus signs. Otherwise it is encoded as an equal sign
     # followed by the lower-case hex encoding of the name.
-    if [ -z "${1##*[!A-Za-z0-9-_' ']*}" ]; then
-        ssid="=$(printf %s "$1" | od -vA n -t x1 | tr -d '\n ')"
-    else
-        ssid=$1
-    fi
+    case $1 in
+        *[!A-Za-z0-9-_' ']*)
+            ssid="=$(printf %s "$1" | od -vA n -t x1 | tr -d '\n ')"
+        ;;
+
+        *)
+            ssid=$1
+        ;;
+    esac
 }
 
 find_network() {
