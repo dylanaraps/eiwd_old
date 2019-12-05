@@ -17,10 +17,8 @@ auth() {
     stty -echo; read -r pass; stty echo
 
     printf '\n'
-
-    [ "$pass" ] || die "Password is blank"
-
-    printf '[Security]\nPassphrase=%s\n' "$pass" > "$ssid.psk"
+    printf '[Security]\nPassphrase=%s\n' \
+        "${pass:?Password is blank}" > "$ssid.psk"
 }
 
 conn() {
