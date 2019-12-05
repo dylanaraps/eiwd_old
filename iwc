@@ -114,38 +114,14 @@ die() {
 help() { printf '%s\n' "\
 iwc 0.2.1 - simple eiwd client.
 
-=> [au]th [ssid]
-    - Add a new network by creating the
-    - network configuration file.
-    - If the network is in range, [iwd]
-    - will attempt to connect to it.
-
-=> [co]nnect [ssid]
-    - Connect to an SSID.
-    - Reconnect to SSID.
-
-=> [de]lete [ssid]
-    - Delete a network's conf file.
-
-=> [di]sconnect
-    - Disconnect from the current
-    - network and disable autoconnect
-    - for this session.
-
-=> [ed]it [ssid]
-    - Open a network's config file.
-    - Uses '${EDITOR:-vi}'.
-
-=> [li]st
-    - List all configured networks.
-
-=> [sc]an
-    - Show scan results.
-    - These results are updated by the
-    - [iwd] daemon periodically.
-
-=> [ss]id
-    - Show connected network SSID.
+=> [au]th       [ssid] - Create network config.
+=> [co]nnect    [ssid] - Connect to an SSID.
+=> [de]lete     [ssid] - Delete a configured network.
+=> [di]sconnect        - Disconnect from the current network.
+=> [ed]it       [ssid] - Edit an SSID's network config.
+=> [li]st              - List all known networks.
+=> [sc]an              - Display periodic scan results.
+=> [ss]id              - Display the current SSID.
 "; }
 
 main() {
