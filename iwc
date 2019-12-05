@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -f
 #
 # Simple iwd client.
 
@@ -6,6 +6,10 @@ auth() {
     [ -f "$ssid.psk" ] && die "Network already configured"
 
     printf 'Enter password: '
+
+    # Ensure that debug mode is disabled to
+    # prevent the password from leaking to stdout.
+    set +x
 
     # Ensure that we leave the terminal in a usable
     # state on exit or Ctrl+C.
@@ -186,13 +190,5 @@ main() {
         *)   help ;;
     esac
 }
-
-# Ensure that debug mode is never enabled to
-# prevent the password from leaking.
-set +x
-
-# Ensure that globbing is globally disabled
-# to avoid insecurities with word-splitting.
-set -f
 
 [ "$1" ] || help && main "$@"
