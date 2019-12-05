@@ -74,15 +74,11 @@ ssid_encode() {
     # only alphanumeric characters, spaces, underscores or
     # minus signs. Otherwise it is encoded as an equal sign
     # followed by the lower-case hex encoding of the name.
-    case $1 in
-        *[!A-Za-z0-9-_' ']*)
-            ssid="=$(printf %s "$1" | od -vA n -t x1 | tr -d '\n ')"
-        ;;
-
-        *)
-            ssid=$1
-        ;;
-    esac
+    if [ -z "${1##*[!A-Za-z0-9-_' ']*}" ]; then
+        ssid="=$(printf %s "$1" | od -vA n -t x1 | tr -d '\n ')"
+    else
+        ssid=$1
+    fi
 }
 
 find_network() {
