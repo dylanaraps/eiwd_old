@@ -56,22 +56,19 @@ list() {
 scan() {
     [ -s data/scan ] || die "No networks found"
 
-    # Set IFS to the table's field separator (TAB).
-    IFS='	'
-
     # Parse the file to figure out which SSID is the longest.
     # SSIDs have a max length of 32 characters though this
     # can be a little too long as a field width.
     #
     # This sets the field width of the SSID to the length
     # of the longest SSID.
-    while read -r ssid _; do
+    while IFS='	' read -r ssid _; do
         len=$((${#ssid} > len ? ${#ssid} : len))
     done < data/scan
 
     # Parse the file and print it as an aligned table. This
     # is rather easy as the max widths of each field are known.
-    while read -r ssid sec adr frq rnk stn; do
+    while IFS='	' read -r ssid sec adr frq rnk stn; do
         printf '%-*s  %-8s  %-17s  %4s  %4s  %8s\n' \
             "$len" "$ssid" "$sec" "$adr" "$frq" "$rnk" "$stn"
     done < data/scan
