@@ -74,13 +74,10 @@ scan() {
 }
 
 ssid() {
-    if [ -s data/current ]; then
-        read -r current < data/current
-
-        log "Connected to '$current'"
-    else
+    read -r current 2>/dev/null < data/current ||
         die 'Not currently connected'
-    fi
+
+    log "Connected to '$current'"
 }
 
 ssid_encode() {
@@ -102,7 +99,7 @@ find_network() {
         -name "${1:-*}.psk"  -o \
         -name "${1:-*}.open" -o \
         -name "${1:-*}.8021x" |
-        grep -m1 .
+        grep -m 1 .
 
     set -f
 }
