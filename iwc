@@ -52,11 +52,24 @@ scan() {
     [ -s data/scan ] ||
         die "No networks found"
 
-    if command -v column >/dev/null 2>&1; then
-        column -ts "$(printf '\t')" < data/scan
-    else
-        cat data/scan
-    fi
+    IFS=$(printf '\t')
+
+    # Parse the file to figure out which SSID is the longest.
+    # SSIDs have a max length of 32 characters though this
+    # can be a little too long as a field width.
+    #
+    # This sets the field width of the SSID to the length
+    # of the longest SSID.
+    while read -r ssid _ || [ "$ssid" ]; do
+        [ "${#ssid}" -gt "${len:-0}" ] && len=${#ssid}
+    done < data/scan
+
+    # Parse the file and print it as an aligned table. This
+    # is rather easy as the max widths of each field are known.
+    while read -r ssid sec adr frq rnk stn || [ "$ssid" ]; do
+        printf '%-*s  %-8s  %-17s  %-4s  %-4s  %8s\n' \
+            "$len" "$ssid" "$sec" "$adr" "$frq" "$rnk" "$stn"
+    done < data/scan
 }
 
 ssid() {
