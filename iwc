@@ -147,8 +147,7 @@ iwc 0.2.0 - simple eiwd client.
 
 => [ss]id
     - Show connected network SSID.
-"
-}
+"; }
 
 main() {
     : "${IWD_DIR:=/var/lib/iwd}"
@@ -162,9 +161,7 @@ main() {
 
     case $1 in
         au*|co*|de*|ed*)
-            [ "$2" ] || die "Missing [ssid] argument"
-
-            ssid_encode "$2"
+            ssid_encode "${2:?Missing [ssid] argument}"
         ;;
 
         di*)
@@ -205,4 +202,4 @@ set +x
 # to avoid insecurities with word-splitting.
 set -f
 
-main "$@"
+[ "$1" ] || help && main "$@"
