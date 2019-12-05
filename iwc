@@ -152,8 +152,8 @@ main() {
     : "${IWD_DIR:=/var/lib/iwd}"
 
     [ -w "$IWD_DIR" ] ||
-        die 'iwc needs to be run as root' \
-            'or given rwx in /var/lib/iwd'
+        die "iwc needs to be run as root" \
+            "or given rwx in $IWD_DIR"
 
     cd "$IWD_DIR" ||
         die "cannot access $IWD_DIR"
