@@ -62,7 +62,7 @@ scan() {
     # Parse the file and print it as an aligned table. This
     # is rather easy as the max widths of each field are known.
     while read -r ssid sec adr frq rnk stn; do
-        printf '%-*s  %-8s  %-17s  %-4s  %-4s  %8s\n' \
+        printf '%-*s  %-8s  %-17s  %4s  %4s  %8s\n' \
             "$len" "$ssid" "$sec" "$adr" "$frq" "$rnk" "$stn"
     done < data/scan
 }
