@@ -87,8 +87,7 @@ find_network() {
     find . -type f \
         -name "${1:-*}.psk"  -o \
         -name "${1:-*}.open" -o \
-        -name "${1:-*}.8021x" |
-        grep -m 1 .
+        -name "${1:-*}.8021x"
 
     set -f
 }
@@ -179,7 +178,7 @@ main() {
     case $1 in
         de*|di*|co*)
 
-        conf=$(find_network "$ssid")
+        conf=$(find_network "$ssid" | grep -m 1 .)
 
         [ -f "$conf" ] || die "Network '$2' not found"
         [ -w "$conf" ] || die "No write permission to '$2'"
