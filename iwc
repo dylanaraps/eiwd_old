@@ -5,9 +5,20 @@
 auth() {
     [ -f "$ssid.psk" ] && die "Network already configured"
 
-    sread pass 'Enter password'
+    printf 'Enter password: '
 
-    [ "${pass?}" ] || die "Password is blank"
+    # Ensure that we leave the terminal in a usable
+    # state on exit or Ctrl+C.
+    trap 'stty echo' INT EXIT
+
+    # Disable terminal printing while the user inputs their
+    # password. POSIX 'read' has no '-s' flag which would
+    # effectively do the same thing.
+    stty -echo; read -r pass; stty echo
+
+    printf '\n'
+
+    [ "$pass" ] || die "Password is blank"
 
     printf '[Security]\nPassphrase=%s\n' "$pass" > "$ssid.psk"
 }
@@ -90,23 +101,6 @@ find_network() {
         -name "${1:-*}.psk"  -o \
         -name "${1:-*}.open" -o \
         -name "${1:-*}.8021x"
-}
-
-sread() {
-    printf '%s: ' "$2"
-
-    # Ensure that we leave the terminal in a usable
-    # state on exit or Ctrl+C.
-    trap 'stty echo' INT EXIT
-
-    # Disable terminal printing while the user inputs their
-    # password. POSIX 'read' has no '-s' flag which would
-    # effectively do the same thing.
-    stty -echo
-    read -r "$1"
-    stty echo
-
-    printf '\n'
 }
 
 log() {
