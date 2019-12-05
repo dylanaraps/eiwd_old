@@ -52,7 +52,8 @@ scan() {
     [ -s data/scan ] ||
         die "No networks found"
 
-    IFS=$(printf '\t')
+    # Set IFS to the table's field separator (TAB).
+    IFS='	'
 
     # Parse the file to figure out which SSID is the longest.
     # SSIDs have a max length of 32 characters though this
