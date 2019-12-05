@@ -125,6 +125,8 @@ iwc 0.2.1 - simple eiwd client.
 "; }
 
 main() {
+    export LC_CTYPE=C
+
     [ -w "${IWD_DIR:=/var/lib/iwd}" ] ||
         die "iwc needs to be run as root" \
             "or given rwx in $IWD_DIR"

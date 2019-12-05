@@ -7,7 +7,7 @@
     exit 1
 }
 
-# Read the password from 'stdin'. This is the simplest
+# Read the password from 'stdin'.
 read -r pass; [ "$pass" ] || exit 1
 
 # Consider all characters as single-byte.
