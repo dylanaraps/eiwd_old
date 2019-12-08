@@ -89,8 +89,6 @@ static struct device *device_create(struct wiphy *wiphy, struct netdev *netdev)
 	device->wiphy = wiphy;
 	device->netdev = netdev;
 
-	scan_wdev_add(netdev_get_wdev_id(device->netdev));
-
 	/*
 	 * register for AP roam transition watch
 	 */
