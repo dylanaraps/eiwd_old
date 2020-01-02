@@ -138,10 +138,8 @@ libexec_PROGRAMS =
 noinst_PROGRAMS =
 
 if MANUAL_PAGES
-man_MANS =
-endif
-
 manual_pages = src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5
+endif
 
 eap_sources = src/eap.c src/eap.h src/eap-private.h \
 				src/eap-wsc.c src/eap-wsc.h \
