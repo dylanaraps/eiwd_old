@@ -170,7 +170,7 @@ void resolve_add_dns(uint32_t ifindex, uint8_t type, char **dns_list)
 	if (!dns_list || !*dns_list)
 		return;
 
-	if (!method.ops || !method.ops->add_dns)
+	if (!method.ops || !method.ops->add_domain_name)
 		return;
 
 	method.ops->add_dns(ifindex, type, dns_list, method.data);
