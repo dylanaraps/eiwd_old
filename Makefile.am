@@ -217,7 +217,7 @@ builtin_sources += plugins/sim_hardcoded.c
 endif
 
 if MANUAL_PAGES
-man_MANS += src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5
+man_MANS = src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5
 endif
 endif
 
