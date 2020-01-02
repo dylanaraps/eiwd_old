@@ -10,6 +10,6 @@ cp -R "ell-$ell_version/ell/" ../ell
 cd ..
 
 autoreconf -fis
-./configure --disable-manual-pages
+./configure
 make
 make check
