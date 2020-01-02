@@ -136,10 +136,7 @@ bin_PROGRAMS =
 bin_SCRIPTS = iwd_passphrase iwc
 libexec_PROGRAMS =
 noinst_PROGRAMS =
-
-if MANUAL_PAGES
-manual_pages = src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5
-endif
+dist_man_MANS = src/iwd.8 src/iwd.debug.7 src/iwd.network.5 src/iwd.config.5
 
 eap_sources = src/eap.c src/eap.h src/eap-private.h \
 				src/eap-wsc.c src/eap-wsc.h \
@@ -214,10 +211,6 @@ src_iwd_DEPENDENCIES = $(ell_dependencies)
 if SIM_HARDCODED
 builtin_modules += sim_hardcoded
 builtin_sources += plugins/sim_hardcoded.c
-endif
-
-if MANUAL_PAGES
-man_MANS = src/iwd.8 src/iwd.debug.7 src/iwd.config.5 src/iwd.network.5
 endif
 endif
 
@@ -362,11 +355,7 @@ unit_test_p2p_LDADD = $(ell_ldadd)
 
 TESTS = $(unit_tests)
 
-EXTRA_DIST = src/genbuiltin \
-			src/pkcs8.conf unit/gencerts.cnf \
-			$(manual_pages) $(patsubst %.1,%.rst, \
-					$(patsubst %.5,%.rst, \
-					$(patsubst %.8,%.rst,$(manual_pages))))
+EXTRA_DIST = src/genbuiltin src/pkcs8.conf unit/gencerts.cnf
 
 AM_CFLAGS = $(ell_cflags) -fvisibility=hidden \
 				-DUNITDIR=\""$(top_srcdir)/unit/"\" \
@@ -382,7 +371,7 @@ DISTCHECK_CONFIGURE_FLAGS =  \
 				--enable-sim-hardcoded \
 				--enable-tools
 
-DISTCLEANFILES = $(BUILT_SOURCES) $(unit_tests) $(manual_pages)
+DISTCLEANFILES = $(BUILT_SOURCES) $(unit_tests)
 
 MAINTAINERCLEANFILES = Makefile.in configure config.h.in aclocal.m4
 
@@ -472,14 +461,6 @@ ell/ell.h: Makefile
 SED_PROCESS = $(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(SED) \
 		-e 's,@libexecdir\@,$(libexecdir),g' \
 		< $< > $@
-
-if RUN_RST2MAN
-RST2MAN_PROCESS = $(AM_V_GEN)$(RST2MAN) --strict --no-raw --no-generator \
-			--no-datestamp $< $@
-else
-RST2MAN_PROCESS = $(AM_V_GEN)test -f $@ || \
-		{ echo "Generated manual page $@ does not exist"; false; }
-endif
 
 %.service: %.service.in Makefile
 	$(SED_PROCESS)

@@ -151,15 +151,6 @@ AC_ARG_ENABLE([monitor], AC_HELP_STRING([--disable-monitor],
 					[enable_monitor=${enableval}])
 AM_CONDITIONAL(MONITOR, test "${enable_monitor}" != "no")
 
-AC_ARG_ENABLE([manual-pages], AC_HELP_STRING([--disable-manual-pages],
-				[don't install manual pages]),
-					[enable_manual_pages=${enableval}])
-if (test "${enable_manual_pages}" != "no"); then
-	AC_CHECK_PROGS(RST2MAN, [rst2man rst2man.py], "no")
-fi
-AM_CONDITIONAL(MANUAL_PAGES, test "${enable_manual_pages}" != "no")
-AM_CONDITIONAL(RUN_RST2MAN, test "${enable_manual_pages}" != "no" && test "${RST2MAN}" != "no")
-
 AC_ARG_ENABLE([external_ell], AC_HELP_STRING([--enable-external-ell],
 				[enable external Embedded Linux library]),
 					[enable_external_ell=${enableval}])
