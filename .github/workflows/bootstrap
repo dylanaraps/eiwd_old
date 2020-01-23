@@ -16,4 +16,5 @@ make check
 
 make clean
 cmake -B build
-make
+make  -C build
+make  -C build check
