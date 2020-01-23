@@ -158,7 +158,6 @@ eap_sources = src/eap.c src/eap.h src/eap-private.h \
 				src/eap-tls-common.h src/eap-tls-common.c \
 				src/mschaputil.h src/mschaputil.c
 
-if DAEMON
 bin_PROGRAMS += src/iwd
 
 src_iwd_SOURCES = src/main.c linux/nl80211.h src/iwd.h src/missing.h \
@@ -211,7 +210,6 @@ src_iwd_DEPENDENCIES = $(ell_dependencies)
 if SIM_HARDCODED
 builtin_modules += sim_hardcoded
 builtin_sources += plugins/sim_hardcoded.c
-endif
 endif
 
 if TOOLS
@@ -478,9 +476,7 @@ SED_PROCESS = $(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(SED) \
 	$(RST2MAN_PROCESS)
 
 install-data-local:
-if DAEMON
 	$(MKDIR_P) -m 700 $(DESTDIR)$(daemon_storagedir)
-endif
 
 clean-local:
 	-rm -f unit/cert-*.pem unit/cert-*.csr unit/cert-*.srl unit/*-settings.8021x

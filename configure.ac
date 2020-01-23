@@ -140,8 +140,7 @@ AC_ARG_ENABLE([external_ell], AC_HELP_STRING([--enable-external-ell],
 				[enable external Embedded Linux library]),
 					[enable_external_ell=${enableval}])
 if (test "${enable_external_ell}" = "yes"); then
-	if (test "${enable_daemon}" != "no" ||
-        test "${enable_hwsim}" = "yes"); then
+	if (test "${enable_hwsim}" = "yes"); then
 		ell_min_version="0.26"
 	else
 		ell_min_version="0.5"
