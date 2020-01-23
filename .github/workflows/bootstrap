@@ -17,4 +17,4 @@ make check
 make clean
 cmake -B build -DBUILD_TESTING=ON
 make  -C build
-make  -C build check
+make  -C build test
