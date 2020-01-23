@@ -16,3 +16,4 @@ make check
 
 make clean
 cmake -B build
+make
