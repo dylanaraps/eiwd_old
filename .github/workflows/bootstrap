@@ -13,3 +13,6 @@ autoreconf -fis
 ./configure
 make
 make check
+
+make clean
+cmake -B build
