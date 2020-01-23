@@ -267,7 +267,7 @@ if(BUILD_TESTING)
         src/eap-sim.c)
     target_link_libraries(test-eap-sim PRIVATE ell)
     add_test(NAME eap-sim COMMAND test-eap-sim)
-    
+
     add_executable(test-cmac-aes unit/test-cmac-aes.c src/crypto.c src/crypto.h)
     target_link_libraries(test-cmac-aes PRIVATE ell)
     add_test(NAME cmac-aes COMMAND test-cmac-aes)
@@ -316,7 +316,7 @@ if(BUILD_TESTING)
         src/eapolutil.c src/eapolutil.h
         src/handshake.c src/handshake.h
         src/eap.c src/eap.h src/eap-private.h
-        src/eap-tls.c 
+        src/eap-tls.c
         src/eap-ttls.c
         src/eap-md5.c
         src/util.c
