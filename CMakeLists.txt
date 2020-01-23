@@ -24,17 +24,41 @@ if(ENABLE_PIE)
 endif()
 
 option(ENABLE_DAEMON "install iwd system daemon" ON)
-option(ENABLE_CLIENT "install iwctl client utility" ON)
-option(ENABLE_MONITOR "install iwmon monitor utility" ON)
 option(ENABLE_EXTERNAL_ELL "enable external Embedded Linux Library" OFF)
-option(ENABLE_HWSIM "enable Wireless simulation utility" OFF)
 option(ENABLE_TOOLS "enable internal testing utilities" OFF)
-option(ENABLE_OFONO "enable oFono SIM authentication support" OFF)
 option(ENABLE_SIM_HARDCODED "enable hard coded SIM keys" OFF)
+
+option(BUILD_TESTING "Build the testing tree." OFF)
+
+# sanitizers
+option(ENABLE_ASAN "enable linking with address sanitizer" OFF)
+option(ENABLE_LSAN "enable linking with leak sanitizer" OFF)
+option(ENABLE_UBSAN "enable linking with undefined behaviour sanitizer" OFF)
+
+include(CheckLibraryExists)
+check_library_exists(asan  _init "" HAVE_ASAN)
+check_library_exists(lsan  _init "" HAVE_LSAN)
+check_library_exists(ubsan _init "" HAVE_UBSAN)
+
+include(CheckCCompilerFlag)
+check_c_compiler_flag(-fsanitize=address   HAVE_ASAN_FLAG)
+check_c_compiler_flag(-fsanitize=leak      HAVE_LSAN_FLAG)
+check_c_compiler_flag(-fsanitize=undefined HAVE_ASAN_FLAG)
+
+if(ENABLE_ASAN AND HAVE_ASAN AND HAVE_ASAN_FLAG)
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
+elseif(ENABLE_LSAN AND HAVE_LSAN AND HAVE_LSAN_FLAG)
+    add_compile_options(-fsanitize=leak)
+    add_link_options(-fsanitize=leak)
+elseif(ENABLE_UBSAN AND HAVE_UBSAN AND HAVE_UBSAN_FLAG)
+    add_compile_options(-fsanitize=undefined)
+    add_link_options(-fsanitize=undefined)
+endif()
 
 # ell
 if(ENABLE_EXTERNAL_ELL)
-    include(FindPkgConfig REQUIRED QUIET)
+    find_package(PkgConfig REQUIRED QUIET)
     pkg_check_modules(Ell REQUIRED IMPORTED_TARGET ell>=0.26)
     add_library(ell INTERFACE)
     target_link_libraries(ell INTERFACE PkgConfig::Ell)
@@ -43,78 +67,82 @@ else()
     check_include_file(linux/types.h HAVE_LINUX_TYPES_H)
     check_include_file(linux/if_alg.h HAVE_LINUX_IF_ALG_H)
 
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ell")
+        file(CREATE_LINK "${CMAKE_CURRENT_SOURCE_DIR}/../ell" "${CMAKE_CURRENT_SOURCE_DIR}/ell" SYMBOLIC)
+    endif()
     add_library(ell STATIC
-        ell/private.h
-        ell/missing.h
-        ell/util.c
-        ell/test.c
-        ell/strv.c
-        ell/utf8.c
-        ell/queue.c
-        ell/hashmap.c
-        ell/string.c
-        ell/settings.c
-        ell/main.c
-        ell/idle.c
-        ell/signal.c
-        ell/timeout.c
-        ell/io.c
-        ell/ringbuf.c
-        ell/log.c
-        ell/plugin.c
-        ell/checksum.c
-        ell/netlink-private.h
-        ell/netlink.c
-        ell/genl-private.h
-        ell/genl.c
-        ell/dbus-private.h
-        ell/dbus.c
-        ell/dbus-message.c
-        ell/dbus-util.c
-        ell/dbus-service.c
-        ell/dbus-client.c
-        ell/dbus-name-cache.c
-        ell/dbus-filter.c
-        ell/gvariant-private.h
-        ell/gvariant-util.c
-        ell/siphash-private.h
-        ell/siphash.c
-        ell/hwdb.c
-        ell/cipher.c
-        ell/random.c
-        ell/uintset.c
-        ell/base64.c
-        ell/asn1-private.h
-        ell/pem.c
-        ell/pem-private.h
-        ell/tls-private.h
-        ell/tls.c
-        ell/tls-record.c
-        ell/tls-suites.c
-        ell/tls-extensions.c
-        ell/uuid.c
-        ell/key.c
-        ell/pkcs5-private.h
-        ell/pkcs5.c
-        ell/file.c
-        ell/dir.c
-        ell/net.c
-        ell/dhcp-private.h
-        ell/dhcp.c
-        ell/dhcp-transport.c
-        ell/dhcp-lease.c
-        ell/cert-private.h
-        ell/cert.c
-        ell/ecc-external.c
-        ell/ecc-private.h
-        ell/ecc.c
-        ell/ecdh.c
-        ell/time.c
-        ell/path.c)
+        ell/ell/private.h
+        ell/ell/missing.h
+        ell/ell/util.c
+        ell/ell/test.c
+        ell/ell/strv.c
+        ell/ell/utf8.c
+        ell/ell/queue.c
+        ell/ell/hashmap.c
+        ell/ell/string.c
+        ell/ell/settings.c
+        ell/ell/main.c
+        ell/ell/idle.c
+        ell/ell/signal.c
+        ell/ell/timeout.c
+        ell/ell/io.c
+        ell/ell/ringbuf.c
+        ell/ell/log.c
+        ell/ell/plugin.c
+        ell/ell/checksum.c
+        ell/ell/netlink-private.h
+        ell/ell/netlink.c
+        ell/ell/genl-private.h
+        ell/ell/genl.c
+        ell/ell/dbus-private.h
+        ell/ell/dbus.c
+        ell/ell/dbus-message.c
+        ell/ell/dbus-util.c
+        ell/ell/dbus-service.c
+        ell/ell/dbus-client.c
+        ell/ell/dbus-name-cache.c
+        ell/ell/dbus-filter.c
+        ell/ell/gvariant-private.h
+        ell/ell/gvariant-util.c
+        ell/ell/siphash-private.h
+        ell/ell/siphash.c
+        ell/ell/hwdb.c
+        ell/ell/cipher.c
+        ell/ell/random.c
+        ell/ell/uintset.c
+        ell/ell/base64.c
+        ell/ell/asn1-private.h
+        ell/ell/pem.c
+        ell/ell/pem-private.h
+        ell/ell/tls-private.h
+        ell/ell/tls.c
+        ell/ell/tls-record.c
+        ell/ell/tls-suites.c
+        ell/ell/tls-extensions.c
+        ell/ell/uuid.c
+        ell/ell/key.c
+        ell/ell/pkcs5-private.h
+        ell/ell/pkcs5.c
+        ell/ell/file.c
+        ell/ell/dir.c
+        ell/ell/net.c
+        ell/ell/dhcp-private.h
+        ell/ell/dhcp.c
+        ell/ell/dhcp-transport.c
+        ell/ell/dhcp-lease.c
+        ell/ell/cert-private.h
+        ell/ell/cert.c
+        ell/ell/ecc-external.c
+        ell/ell/ecc-private.h
+        ell/ell/ecc.c
+        ell/ell/ecdh.c
+        ell/ell/time.c
+        ell/ell/path.c)
     target_compile_definitions(ell PRIVATE
         $<$<BOOL:${HAVE_EXPLICIT_BZERO}>:HAVE_EXPLICIT_BZERO>
         $<$<BOOL:${HAVE_LINUX_IF_ALG_H}>:HAVE_LINUX_IF_ALG_H>
         $<$<BOOL:${HAVE_LINUX_TYPES_H}>:HAVE_LINUX_TYPES_H>)
+    target_include_directories(ell PRIVATE ell)
 endif()
 
 set(BUILTIN_MODULES)
@@ -148,6 +176,7 @@ add_library(eap OBJECT
     src/eap-tls-common.h src/eap-tls-common.c
     src/mschaputil.h src/mschaputil.c)
 target_compile_definitions(eap PRIVATE $<$<BOOL:${HAVE_EXPLICIT_BZERO}>:HAVE_EXPLICIT_BZERO>)
+target_include_directories(eap PRIVATE ell)
 
 if(ENABLE_DAEMON)
     add_executable(iwd
@@ -192,12 +221,13 @@ if(ENABLE_DAEMON)
         src/p2putil.h src/p2putil.c
         src/module.h src/module.c
         src/rrm.c)
-    target_link_libraries(iwd PRIVATE ell eap ${CMAKE_DL_LIBS})
+    target_include_directories(iwd PRIVATE ell)
     target_compile_definitions(iwd PRIVATE
         VERSION="${PROJECT_VERSION}"
         $<$<BOOL:${HAVE_EXPLICIT_BZERO}>:HAVE_EXPLICIT_BZERO>
         DAEMON_CONFIGDIR="${DAEMON_CONFIGDIR}"
         DAEMON_STORAGEDIR="${DAEMON_STORAGEDIR}")
+    target_link_libraries(iwd PRIVATE ell eap ${CMAKE_DL_LIBS})
     if(ENABLE_SIM_HARDCODED)
         target_sources(iwd PRIVATE plugins/sim_hardcoded.c)
     endif()
