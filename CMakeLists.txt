@@ -61,6 +61,7 @@ if(ENABLE_EXTERNAL_ELL)
     find_package(PkgConfig REQUIRED QUIET)
     pkg_check_modules(Ell REQUIRED IMPORTED_TARGET ell>=0.26)
     add_library(ell INTERFACE)
+    target_compile_definitions(ell INTERFACE $<$<BOOL:${HAVE_EXPLICIT_BZERO}>:HAVE_EXPLICIT_BZERO>)
     target_link_libraries(ell INTERFACE PkgConfig::Ell)
 else()
     include(CheckIncludeFile)
@@ -138,8 +139,10 @@ else()
         ell/ecdh.c
         ell/time.c
         ell/path.c)
-    target_compile_definitions(ell PRIVATE
+    target_compile_definitions(ell
+        PUBLIC
         $<$<BOOL:${HAVE_EXPLICIT_BZERO}>:HAVE_EXPLICIT_BZERO>
+        PRIVATE
         $<$<BOOL:${HAVE_LINUX_IF_ALG_H}>:HAVE_LINUX_IF_ALG_H>
         $<$<BOOL:${HAVE_LINUX_TYPES_H}>:HAVE_LINUX_TYPES_H>)
 endif()
@@ -236,3 +239,208 @@ install(PROGRAMS iwc iwd_passphrase TYPE BIN)
 install(FILES src/iwd.config.5 src/iwd.network.5 DESTINATION "${CMAKE_INSTALL_FULL_MANDIR}/man5")
 install(FILES src/iwd.debug.7 DESTINATION "${CMAKE_INSTALL_FULL_MANDIR}/man7")
 install(FILES src/iwd.8 DESTINATION "${CMAKE_INSTALL_FULL_MANDIR}/man8")
+
+# tests
+if(ENABLE_TOOLS)
+    add_executable(test-runner tools/test-runner.c)
+    target_compile_definitions(test-runner PRIVATE
+        DAEMON_CONFIGDIR="${DAEMON_CONFIGDIR}"
+        DAEMON_STORAGEDIR="${DAEMON_STORAGEDIR}")
+    target_link_libraries(test-runner PRIVATE ell)
+endif()
+
+if(BUILD_TESTING)
+    enable_testing()
+
+    add_executable(test-eap-sim unit/test-eap-sim.c
+        src/crypto.c src/crypto.h
+        src/simutil.c src/simutil.h
+        src/ie.c src/ie.h
+        src/watchlist.c src/watchlist.h
+        src/eapol.c src/eapol.h
+        src/eapolutil.c src/eapolutil.h
+        src/handshake.c src/handshake.h
+        src/eap.c src/eap.c src/eap-private.h
+        src/util.c src/util.h
+        src/simauth.c src/simauth.h
+        src/erp.c src/erp.h
+        src/eap-sim.c)
+    target_link_libraries(test-eap-sim PRIVATE ell)
+    add_test(NAME eap-sim COMMAND test-eap-sim)
+    
+    add_executable(test-cmac-aes unit/test-cmac-aes.c src/crypto.c src/crypto.h)
+    target_link_libraries(test-cmac-aes PRIVATE ell)
+    add_test(NAME cmac-aes COMMAND test-cmac-aes)
+
+    add_executable(test-arc4 unit/test-arc4.c src/crypto.c src/crypto.h)
+    target_link_libraries(test-arc4 PRIVATE ell)
+    add_test(NAME arc4 COMMAND test-arc4)
+
+    add_executable(test-hmac-md5 unit/test-hmac-md5.c src/crypto.c src/crypto.h)
+    target_link_libraries(test-hmac-md5 PRIVATE ell)
+    add_test(NAME hmac-md5 COMMAND test-hmac-md5)
+
+    add_executable(test-hmac-sha1 unit/test-hmac-sha1.c src/crypto.c src/crypto.h)
+    target_link_libraries(test-hmac-sha1 PRIVATE ell)
+    add_test(NAME hmac-sha1 COMMAND test-hmac-sha1)
+
+    add_executable(test-hmac-sha256 unit/test-hmac-sha256.c src/crypto.c src/crypto.h)
+    target_link_libraries(test-hmac-sha256 PRIVATE ell)
+    add_test(NAME hmac-sha256 COMMAND test-hmac-sha256)
+
+    add_executable(test-prf-sha1 unit/test-prf-sha1.c src/crypto.c src/crypto.h)
+    target_link_libraries(test-prf-sha1 PRIVATE ell)
+    add_test(NAME prf-sha1 COMMAND test-prf-sha1)
+
+    add_executable(test-kdf-sha256 unit/test-kdf-sha256.c src/crypto.c src/crypto.h)
+    target_link_libraries(test-kdf-sha256 PRIVATE ell)
+    add_test(NAME kdf-sha256 COMMAND test-kdf-sha256)
+
+    add_executable(test-ie unit/test-ie.c src/ie.c src/ie.h)
+    target_link_libraries(test-ie PRIVATE ell)
+    add_test(NAME ie COMMAND test-ie)
+
+    add_executable(test-crypto unit/test-crypto.c src/crypto.c src/crypto.h)
+    target_link_libraries(test-crypto PRIVATE ell)
+    add_test(NAME crypto COMMAND test-crypto)
+
+    add_executable(test-mpdu unit/test-mpdu.c src/mpdu.c src/mpdu.h src/ie.c src/ie.h)
+    target_link_libraries(test-mpdu PRIVATE ell)
+    add_test(NAME mpdu COMMAND test-mpdu)
+
+    add_executable(test-eapol unit/test-eapol.c
+        src/crypto.c src/crypto.h
+        src/ie.c src/ie.h
+        src/watchlist.c src/watchlist.h
+        src/eapol.c src/eapol.h
+        src/eapolutil.c src/eapolutil.h
+        src/handshake.c src/handshake.h
+        src/eap.c src/eap.h src/eap-private.h
+        src/eap-tls.c 
+        src/eap-ttls.c
+        src/eap-md5.c
+        src/util.c
+        src/eap-tls-common.c src/eap-tls-common.h
+        src/erp.c src/erp.h
+        src/mschaputil.c src/mschaputil.h)
+    target_compile_definitions(test-eapol PRIVATE CERTDIR="${CMAKE_CURRENT_BUILD_DIR}")
+    target_link_libraries(test-eapol PRIVATE ell)
+    add_dependencies(test-eapol
+        cert-server.pem
+        cert-server-key-pkcs8.pem
+        cert-client.pem
+        cert-client-key-pkcs8.pem
+        tls-settings.8021x)
+    add_test(NAME eapol COMMAND test-eapol)
+
+    add_executable(test-util unit/test-util.c src/util.c src/util.h)
+    target_link_libraries(test-util PRIVATE ell)
+    add_test(NAME util COMMAND test-util)
+
+    add_executable(test-ssid-security unit/test-ssid-security.c src/ie.c src/ie.h src/common.c src/common.h)
+    target_link_libraries(test-ssid-security PRIVATE ell)
+    add_test(NAME ssid-security COMMAND test-ssid-security)
+
+    add_executable(test-wsc unit/test-wsc.c
+        src/wscutil.c src/wscutil.h
+        src/crypto.c src/crypto.h
+        src/ie.c src/ie.h
+        src/watchlist.c src/watchlist.h
+        src/eapol.c src/eapol.h
+        src/eapolutil.c src/eapolutil.h
+        src/handshake.c src/handshake.h
+        src/eap.c src/eap.c src/eap-private.h
+        src/util.c src/util.h
+        src/erp.c src/erp.h
+        src/eap-wsc.c src/eap-wsc.h)
+    target_link_libraries(test-wsc PRIVATE ell)
+    add_test(NAME wsc COMMAND test-wsc)
+
+    add_executable(test-eap-mschapv2 unit/test-eap-mschapv2.c
+        src/eap-mschapv2.c src/eap-mschapv2.h
+        src/eap.c src/eap.h src/eap-private.h
+        src/mschaputil.c src/mschaputil.h)
+    target_link_libraries(test-eap-mschapv2 PRIVATE ell)
+    add_test(NAME eap-mschapv2 COMMAND test-eap-mschapv2)
+
+    add_executable(test-sae unit/test-sae.c
+        src/sae.c src/sae.h
+        src/crypto.c src/crypto.h
+        src/ie.c src/ie.h
+        src/handshake.c src/handshake.h
+        src/util.c src/util.h
+        src/mpdu.c src/mpdu.h)
+    target_link_libraries(test-sae PRIVATE ell)
+    add_test(NAME sae COMMAND test-sae)
+
+    add_executable(test-p2p unit/test-p2p.c
+        src/wscutil.c src/wscutil.h
+        src/crypto.c src/crypto.h
+        src/ie.c src/ie.h
+        src/util.c src/util.h
+        src/p2putil.c src/p2putil.h)
+    target_link_libraries(test-p2p PRIVATE ell)
+    add_test(NAME p2p COMMAND test-p2p)
+
+    add_custom_target(cert-ca-key.pem openssl genrsa -out cert-ca-key.pem 2048)
+
+    add_custom_target(cert-ca.pem openssl req -x509 -new -nodes -extensions ca_ext
+        -config "${CMAKE_CURRENT_SOURCE_DIR}/unit/gencerts.cnf"
+        -subj "/O=International Union of Example Organizations/CN=Certificate issuer gui/emailADdress=ca@mail.example"
+        -key cert-ca-key.pem -sha256 -days 10000 -out cert-ca.pem)
+    add_dependencies(cert-ca.pem cert-ca-key.pem)
+
+    add_custom_target(cert-server-key.pem openssl genrsa -out cert-server-key.pem)
+
+    add_custom_target(cert-server-key-pkcs8.pem openssl pkcs8 -topk8 -nocrypt
+        -in cert-server-key.pem -out cert-server-key-pkcs8.pem)
+    add_dependencies(cert-server-key-pkcs8.pem cert-server-key.pem)
+
+    add_custom_target(cert-server.csr openssl req -new -extensions cert_ext
+        -config "${CMAKE_CURRENT_SOURCE_DIR}/unit/gencerts.cnf"
+        -subj "/O=Foo Example Organization/CN=Foo Example Organization/emailAddress=foo@mail.example"
+        -key cert-server-key.pem -out cert-server.csr)
+    add_dependencies(cert-server.csr cert-server-key.pem)
+
+    add_custom_target(cert-server.pem openssl x509 -req -extensions server_ext
+        -extfile "${CMAKE_CURRENT_SOURCE_DIR}/unit/gencerts.cnf"
+        -in cert-server.csr -CA cert-ca.pem
+        -CAkey cert-ca-key.pem
+        -CAserial cert-ca.srl
+        -CAcreateserial -sha256 -days 10000 -out cert-server.pem)
+    add_dependencies(cert-server.pem cert-server.csr cert-ca.pem)
+
+    add_custom_target(cert-client-key.pem openssl genrsa -out cert-client-key.pem)
+
+    add_custom_target(cert-client-key-pkcs8.pem openssl pkcs8 -topk8 -nocrypt
+        -in cert-client-key.pem -out cert-client-key-pkcs8.pem)
+    add_dependencies(cert-client-key-pkcs8.pem cert-client-key.pem)
+
+    add_custom_target(cert-client.csr openssl req -new -extensions cert_ext
+        -config "${CMAKE_CURRENT_SOURCE_DIR}/unit/gencerts.cnf"
+        -subj "/O=Bar Example Organization/CN=Bar Example Organization/emailAddress=bar@mail.example"
+        -key cert-client-key.pem -out cert-client.csr)
+    add_dependencies(cert-client.csr cert-client-key.pem)
+
+    add_custom_target(cert-client.pem openssl x509 -req -extensions cert_ext
+        -extfile "${CMAKE_CURRENT_SOURCE_DIR}/unit/gencerts.cnf"
+        -in cert-client.csr -CA cert-ca.pem
+        -CAkey cert-ca-key.pem
+        -CAserial cert-ca.srl
+        -CAcreateserial -sha256 -days 10000 -out cert-client.pem)
+    add_dependencies(cert-client.pem cert-client.csr cert-ca.pem)
+
+    add_custom_target(tls-settings.8021x "${CMAKE_COMMAND}" -E echo "[Security]" > tls-settings.8021x
+        COMMAND "${CMAKE_COMMAND}" -E echo "EAP-Method=TLS" >> tls-settings.8021x
+        COMMAND "${CMAKE_COMMAND}" -E echo "EAP-Identity=abs@example.com" >> tls-settings.8021x
+        COMMAND "${CMAKE_COMMAND}" -E echo "EAP-TLS-CaCert=embed:ca_cert" >> tls-settings.8021x
+        COMMAND "${CMAKE_COMMAND}" -E echo "EAP-TLS-ClientCert=embed:client_cert" >> tls-settings.8021x
+        COMMAND "${CMAKE_COMMAND}" -E echo "EAP-TLS-ClientKey=embed:client_key" >> tls-settings.8021x
+        COMMAND "${CMAKE_COMMAND}" -E echo "[@pem@ca_cert]" >> tls-settings.8021x
+        COMMAND cat cert-ca.pem >> tls-settings.8021x
+        COMMAND "${CMAKE_COMMAND}" -E echo "[@pem@client_cert]" >> tls-settings.8021x
+        COMMAND cat cert-client.pem >> tls-settings.8021x
+        COMMAND "${CMAKE_COMMAND}" -E echo "[@pem@client_key]" >> tls-settings.8021x
+        COMMAND cat cert-client-key-pkcs8.pem >> tls-settings.8021x)
+    add_dependencies(tls-settings.8021x cert-ca.pem cert-client.pem cert-client-key-pkcs8.pem)
+endif()
