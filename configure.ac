@@ -136,29 +136,12 @@ if (test "${USE_MAINTAINER_MODE}" = yes); then
 		])
 fi
 
-AC_ARG_ENABLE([daemon], AC_HELP_STRING([--disable-daemon],
-				[don't install iwd system daemon]),
-					[enable_daemon=${enableval}])
-AM_CONDITIONAL(DAEMON, test "${enable_daemon}" != "no")
-
-AC_ARG_ENABLE([client], AC_HELP_STRING([--disable-client],
-				[don't install iwctl client utility]),
-					[enable_client=${enableval}])
-AM_CONDITIONAL(CLIENT, test "${enable_client}" != "no")
-
-AC_ARG_ENABLE([monitor], AC_HELP_STRING([--disable-monitor],
-				[don't install iwmon monitor utility]),
-					[enable_monitor=${enableval}])
-AM_CONDITIONAL(MONITOR, test "${enable_monitor}" != "no")
-
 AC_ARG_ENABLE([external_ell], AC_HELP_STRING([--enable-external-ell],
 				[enable external Embedded Linux library]),
 					[enable_external_ell=${enableval}])
 if (test "${enable_external_ell}" = "yes"); then
 	if (test "${enable_daemon}" != "no" ||
-			test "${enable_client}" != "no" ||
-			test "${enable_monitor}" != "no" ||
-			test "${enable_hwsim}" = "yes"); then
+        test "${enable_hwsim}" = "yes"); then
 		ell_min_version="0.26"
 	else
 		ell_min_version="0.5"
@@ -171,20 +154,10 @@ fi
 AM_CONDITIONAL(EXTERNAL_ELL, test "${enable_external_ell}" = "yes")
 
 
-AC_ARG_ENABLE([hwsim], AC_HELP_STRING([--enable-hwsim],
-				[enable Wireless simulation utility]),
-					[enable_hwsim=${enableval}])
-AM_CONDITIONAL(HWSIM, test "${enable_hwsim}" = "yes")
-
 AC_ARG_ENABLE([tools], AC_HELP_STRING([--enable-tools],
 				[enable internal testing utilities]),
 					[enable_tools=${enableval}])
 AM_CONDITIONAL(TOOLS, test "${enable_tools}" = "yes")
-
-AC_ARG_ENABLE([ofono], AC_HELP_STRING([--enable-ofono],
-				[enable oFono SIM authentication support]),
-					[enable_ofono=${enableval}])
-AM_CONDITIONAL(OFONO, test "${enable_ofono}" = "yes")
 
 AC_ARG_ENABLE([sim_hardcoded], AC_HELP_STRING([--enable-sim-hardcoded],
 				[enable hard coded SIM keys]),
